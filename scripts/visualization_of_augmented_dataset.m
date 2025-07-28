@@ -1,13 +1,29 @@
-% % Script for visualization of data samples as 2D embeddings
-% % The dataset is augmented and original and augmented samples are diplayed
-% % to see augmentation problems (e.g., ovelpapping classes, lack of diversity)
+%% Visualization of Original and Augmented Dataset Using MDS Embedding
+%
+% This script visualizes the distribution of samples before and after data augmentation,
+% using Multidimensional Scaling (MDS) based on DTW distance. The goal is to reveal issues
+% such as class overlap or insufficient diversity introduced by augmentation.
+%
+% Inputs:
+% - augFunction: function handle for augmentation method (e.g., @aug_dba, @aug_warp, etc.);
+%                use 'no aug' to skip augmentation.
+% - dataset: string specifying the dataset name (e.g., 'florence', 'kard', 'eeg').
+% - augSetSize: multiplier of the original training set (e.g., 1.0 = same size as original).
+%
+% The script performs the following steps:
+% 1. Loads the specified dataset and reformats the data.
+% 2. Applies the selected augmentation method to produce additional training samples.
+% 3. Computes the DTW-based distance matrix.
+% 4. Reduces dimensionality via MDS.
+% 5. Plots original and augmented samples for visual inspection.
 
 function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
-    % Set random seed for reproducibility
+
+    %%% Set random seed for reproducibility
     randn('seed', 0);
     rand('seed', 0);
 
-    % Load dataset based on the provided name
+    %%% Map dataset names to their corresponding .mat files
     datasetFiles = struct( ...
         'florence', 'actionCoordsFLORENCE.mat', ...
         'kard', 'actionCoordsKARD.mat', ...
@@ -29,33 +45,34 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         'pendigits', 'Pendigits.mat' ...
     );
 
+    %%% Load selected dataset
     if isfield(datasetFiles, lower(dataset))
         data = importdata(datasetFiles.(lower(dataset)));
     else
         error('Unknown dataset name.');
     end
 
-	subjectsNumber = length(data);
-	Data = {};	
-	for s = 1 : 1 : subjectsNumber
-		Data = cat(1, Data, data{s});		
-	end
-    data=Data;
+    %%% Flatten the data structure to a cell array
+    subjectsNumber = length(data);
+    Data = {};
+    for s = 1 : subjectsNumber
+        Data = cat(1, Data, data{s});
+    end
+    data = Data;
 
-    % Determine the target number of augmented samples
+    %%% Determine number of augmented samples to generate
     targetAugSamNum = augSetSize * length(data);
 
-    % Extract features and labels
+    %%% Extract sequences (X) and labels (Y) from dataset
     numOriginalSamples = length(data);
     data_X = cell(1, numOriginalSamples);
     data_Y = zeros(1, numOriginalSamples);
-
     for i = 1:numOriginalSamples
         data_X{i} = data{i, 1}';
         data_Y(i) = str2double(data{i, 2});
     end
-	
-    % Data augmentation
+
+    %%% Augment data using the provided function handle
     if isa(augFunction, 'function_handle')
         OutTrain = {};
         OutTrainLabels = [];
@@ -66,27 +83,29 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
             OutTrainLabels = [OutTrainLabels, out_lab_temp];
         end
 
-        % Limit augmented samples to targetAugSamNum
+        % Truncate augmented data if too long
         while length(OutTrain) > targetAugSamNum
             index = randi(length(OutTrain));
             OutTrain(index) = [];
             OutTrainLabels(index) = [];
         end
 
+        %%% For selected methods, convert representation before appending
+        if strcmp(func2str(augFunction), 'aug_adder')
+            data_X = change_representation(data_X);
+        end
+
         % Merge original and augmented data
-		if strcmp(func2str(augFunction), 'aug_adder') % This method is different, now we can change it
-			data_X = change_representation(data_X);
-		end
         data_X = [data_X, OutTrain];
         data_Y = [data_Y, OutTrainLabels];
     end
 
-    % Prepare data for visualization
+    %%% Prepare for distance matrix computation
     AllData = data_X;
     AllLabels = data_Y;
     numSamples = length(AllData);
 
-    % Compute DTW-based distance matrix
+    %%% Compute DTW distance matrix (quadratic cost)
     D = zeros(numSamples, numSamples);
     for i = 1:numSamples - 1
         for j = i + 1:numSamples
@@ -95,51 +114,46 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         end
     end
 
-    % Apply multidimensional scaling (MDS) to reduce dimensionality
+    %%% Apply MDS to project data into 2D space
     Y_all = mdscale(D, 2, 'Start', 'random');
 
-    % Visualization
+    %%% Plot results
     figure;
     hold on;
 
-    % Define different markers for original and augmented samples
-    originalMarker = 'o'; % Circle for original data
-    augmentedMarker = 'x'; % Cross for augmented data
+    % Use circles for original samples, crosses for augmented
+    originalMarker = 'o';
+    augmentedMarker = 'x';
 
     uniqueLabels = unique(AllLabels);
-    colors = lines(length(uniqueLabels)); % Generate distinguishable colors
-    legendEntries = gobjects(length(uniqueLabels) * 2, 1); % Placeholder for legend
-
-    legendNames = cell(length(uniqueLabels) * 2, 1); % Labels for legend
+    colors = lines(length(uniqueLabels));
+    legendEntries = gobjects(length(uniqueLabels) * 2, 1);
+    legendNames = cell(length(uniqueLabels) * 2, 1);
 
     for i = 1:length(uniqueLabels)
         classLabel = uniqueLabels(i);
-
-        % Find indices of original and augmented samples
         originalIdx = find(AllLabels(1:numOriginalSamples) == classLabel);
         augmentedIdx = find(AllLabels(numOriginalSamples + 1:end) == classLabel) + numOriginalSamples;
 
-        % Plot original samples
         legendEntries(2 * i - 1) = scatter(Y_all(originalIdx, 1), Y_all(originalIdx, 2), 50, colors(i, :), originalMarker, 'filled');
         legendNames{2 * i - 1} = sprintf('Class %d (Original)', classLabel);
 
-        % Plot augmented samples
         legendEntries(2 * i) = scatter(Y_all(augmentedIdx, 1), Y_all(augmentedIdx, 2), 50, colors(i, :), augmentedMarker);
         legendNames{2 * i} = sprintf('Class %d (Augmented)', classLabel);
     end
 
-    % Set title with dataset name and augmentation method (bold)
-	methodName = func2str(augFunction);
-	if startsWith(methodName, 'aug_')
-		methodName = methodName(5:end); % Delete "aug_"
-	end
-	methodName = upper(methodName); % Large letters
+    %%% Format method name for title
+    methodName = func2str(augFunction);
+    if startsWith(methodName, 'aug_')
+        methodName = methodName(5:end);
+    end
+    methodName = upper(methodName);
 
-	title({sprintf('MDS - %s dataset', dataset), sprintf('\\bf{Augmentation: %s}', methodName)}, 'Interpreter', 'tex');
+    %%% Show plot
+    title({sprintf('MDS - %s dataset', dataset), sprintf('\\bf{Augmentation: %s}', methodName)}, 'Interpreter', 'tex');
     xlabel('Dimension 1');
     ylabel('Dimension 2');
     legend(legendEntries, legendNames);
     hold off;
-end
 
- 
+end

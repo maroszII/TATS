@@ -1,33 +1,59 @@
-function accuracy = test_dtw(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, multiprocessing)
-    if ~multiprocessing
-        disp('k-NN DTW validation test...')
+%% k-NN with Dynamic Time Warping (DTW) Validation Test
+%
+% This function performs classification using a k-Nearest Neighbors classifier
+% where the distance metric is Dynamic Time Warping (DTW). For each test sample,
+% distances to all training samples are computed, and the class is assigned
+% based on the majority vote among the k closest neighbors.
+%
+% Inputs:
+% - TRAIN_X: cell array of training samples (features × time)
+% - TRAIN_Y: vector of training labels
+% - TEST_X: cell array of testing samples
+% - TEST_Y: vector of testing labels
+% - parameters: struct with classifier parameters, including:
+%       .windowSize - Sakoe-Chiba band width for DTW
+%       .metric - metric used in DTW (e.g., 'euclidean')
+%       .k - number of neighbors for k-NN
+% - dispLogs: boolean flag to display progress messages
+%
+% Output:
+% - accuracy: classification accuracy on the test set
+
+function accuracy = test_dtw(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+
+    %% Optional log display
+    if dispLogs
+        disp('Starting k-NN with DTW validation test...');
     end
 
     recognizedLabels = zeros(length(TEST_X), 1);
     recognizedSamplesCount = 0;
     
-    for i = 1:length(TEST_X)    
+    %% Classification loop for each test sample
+    for i = 1:length(TEST_X)
         distances = zeros(length(TRAIN_X), 1);
         labels = zeros(length(TRAIN_X), 1);
         
-        % Compute distances from the test sample to all training samples
-        for j = 1:length(TRAIN_X)		 
+        % Calculate DTW distance from test sample i to all training samples
+        for j = 1:length(TRAIN_X)
             distances(j) = dtw(TEST_X{i}, TRAIN_X{j}, parameters.windowSize, parameters.metric);
             labels(j) = TRAIN_Y(j);
         end
         
-        % Sort distances and get the k-nearest neighbors
+        % Find indices of k smallest distances (nearest neighbors)
         [~, sortedIndices] = sort(distances);
         kNearestLabels = labels(sortedIndices(1:parameters.k));
         
-        % Determine the most common label among k-nearest neighbors
+        % Assign label based on majority vote among k neighbors
         recognizedLabel = mode(kNearestLabels);
         recognizedLabels(i) = recognizedLabel;
         
+        % Increment count if classification is correct
         if recognizedLabel == TEST_Y(i)
             recognizedSamplesCount = recognizedSamplesCount + 1;
         end
     end
 
+    %% Calculate overall accuracy
     accuracy = recognizedSamplesCount / length(TEST_Y);
 end

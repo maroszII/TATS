@@ -1,43 +1,34 @@
-%% Single Validation Test Using LSTM Classifier
+%% Single Validation Test Using Gated Recurrent Unit (GRU) Classifier
 %
-% This script performs a classification test using an LSTM or BiLSTM
-% neural network model on time series data. It includes training the
-% network and evaluating its accuracy on the test set.
+% This function performs classification of time-series data using a GRU-based
+% recurrent neural network. It trains the GRU on the training data and evaluates
+% accuracy on the test set.
 %
 % Inputs:
 % - TRAIN_X: cell array of training sequences (features × time)
 % - TRAIN_Y: vector of training labels
-% - TEST_X: cell array of testing sequences
-% - TEST_Y: vector of testing labels
-% - parameters: structure with model and training hyperparameters:
-%       .bidirectional - use BiLSTM if true, else LSTM
-%       .numHiddenUnits - number of hidden units in LSTM layer
+% - TEST_X: cell array of test sequences
+% - TEST_Y: vector of test labels
+% - parameters: struct with classifier parameters, including:
+%       .numHiddenUnits - number of hidden units in the GRU layer
 %       .numClasses - number of output classes
-%       .maxEpochs - number of training epochs
-%       .miniBatchSize - size of training mini-batches
-%       .initialLearnRate - learning rate for optimizer
-%       .processingUnit - e.g., 'cpu' or 'gpu'
+%       .processingUnit - 'cpu' or 'gpu' for training environment
 %       .gradientThreshold - gradient clipping threshold
-% - dispLogs: boolean flag to display logs
+%       .maxEpochs - maximum number of training epochs
+%       .miniBatchSize - size of mini-batches for training
+%       .initialLearnRate - initial learning rate for optimizer
+% - dispLogs: boolean flag to display training logs
 %
 % Output:
 % - accuracy: classification accuracy on the test set
 
-function accuracy = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function accuracy = test_gru(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
 
-    %% Choose LSTM or BiLSTM layer
  	% display logs only if multiprocessing is set
-	if parameters.bidirectional
-		if dispLogs
-			disp('BiLSTM validation test...')
-		end
-		lstmLayerObj = lstmLayer(parameters.numHiddenUnits,'OutputMode','last');
-	else
-		if dispLogs
-			disp('LSTM validation test...')
-		end
-		lstmLayerObj = bilstmLayer(parameters.numHiddenUnits,'OutputMode','last');
+	if dispLogs
+		disp('GRU validation test...')
 	end
+	gruLayerObj = gruLayer(parameters.numHiddenUnits,'OutputMode','last');
 
 	% get class labels
 	TRAIN_Y = categorical(TRAIN_Y);
@@ -62,7 +53,7 @@ function accuracy = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, disp
 	% definenetwork architecture (layer types and order)
 	layers = [ ...
 	sequenceInputLayer(parameters.inputSize)
-	lstmLayerObj
+	gruLayerObj
 	fullyConnectedLayer(parameters.numClasses)
 	softmaxLayer
 	classificationLayer];
