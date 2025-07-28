@@ -1,4 +1,4 @@
-TATS: Toolbox for Augmenting Time Series
+TATS: Toolbox for Augmenting Time-Series
 Authors:
 Dawid Warchoł and Mariusz Oszust
 
@@ -11,7 +11,7 @@ Optional:
 Parallel Computing Toolbox
 NVIDIA GPU (G8x series or higher) and CUDA drivers
  
-## Run on MATLAB 2023b or higher
+## Run on MATLAB 2023b or higher (e.g., Matlab 2025a)
 Usage: 
 
 run main.m script 
