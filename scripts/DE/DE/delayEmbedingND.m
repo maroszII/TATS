@@ -1,8 +1,8 @@
-function [ y ] = delayEmbeding( x, dim, step, w)
-% delay embedding 
+function [y] = delayEmbedingND(x, dim, step, w)
+% N-Dimensional delay embedding 
 % 
 % Input:
-%   x       input signal, a vector
+%   x       input signal, a matrix, each column is a dimension
 %   dim     dimension
 %   step    delay step 
 %   w       slide step
@@ -12,7 +12,7 @@ function [ y ] = delayEmbeding( x, dim, step, w)
 %
 %
 % Author:   Zhifei Zhang
-% Date:     Feb. 6, 2015
+% Date:     Jan. 13, 2016
 % Email:    zzhang61@vols.utk.edu
 %
 
@@ -29,18 +29,16 @@ end
 if nargin < 4
     w = 1;
 end
+[n, n_dim] = size(x);
 
 %% init output
-n = length(x);
 if n < dim
-    error('Too large dimention')
+    error('Too large dimension')
 end
-y = nan(round((n-step*(dim-1))/w),dim);
+y = [];
 
-%% delay embedding
-ind = 1:w:n;
-for i=1:size(y,1)
-    temp = x(ind(i):step:ind(i)+step*(dim-1)); 
-   y(i,:) = reshape(temp, 1, length(temp));
+% %% delay embedding
+for i = 1:n_dim
+    y = [ y delayEmbeding(x(:,i), dim, step, w)];
 end
 
