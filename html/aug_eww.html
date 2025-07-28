@@ -1,0 +1,409 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>aug_eww</title>
+<meta name="generator" content="MATLAB 25.1">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-07-26">
+<meta name="DC.source" content="aug_eww.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<pre class="codeinput">
+<span class="comment">%</span>
+<span class="comment">% Augmentation method: Extended Window Warping (EWW)</span>
+<span class="comment">%</span>
+<span class="comment">% This function implements the EWW technique for augmenting multivariate time-series data.</span>
+<span class="comment">% The method is described in:</span>
+<span class="comment">% D. Warchoł, M. Oszust, Efficient augmentation of human action recog-</span>
+<span class="comment">% nition datasets with warped windows, Procedia Computer Science 207 (2022) 3018&ndash;3027.</span>
+<span class="comment">% It modifies local windows of the signal by:</span>
+<span class="comment">% 1. Randomly stretching or squeezing internal windows (simulating timing variations),</span>
+<span class="comment">% 2. Interpolating a second random window with varied scaling,</span>
+<span class="comment">% 3. Concatenating results back into the signal.</span>
+<span class="comment">%</span>
+<span class="comment">% Inputs:</span>
+<span class="comment">% - train: cell array of multivariate time-series samples (dim &times; time)</span>
+<span class="comment">% - trainLabels: corresponding class labels</span>
+<span class="comment">% - nDraws: number of augmented versions to generate per sample</span>
+<span class="comment">%</span>
+<span class="comment">% Outputs:</span>
+<span class="comment">% - outTrain: augmented training data</span>
+<span class="comment">% - outTrainLabels: corresponding labels for the augmented data</span>
+
+<span class="keyword">function</span> [outTrain, outTrainLabels] = aug_eww(train,trainLabels,nDraws)
+	<span class="comment">% Allocate output arrays</span>
+	outTrain = cell(1,length(trainLabels)*nDraws);
+    outTrainLabels = zeros(1,length(trainLabels)*nDraws);
+	xSize = size(train,2);
+	Ldiv = 3; <span class="comment">% Used to define relative excerpt sizes</span>
+
+	counter = 1;
+	<span class="keyword">for</span> i = 1 : xSize
+		<span class="keyword">for</span> iD = 1 : nDraws
+			temp = train{i};
+
+            <span class="keyword">if</span> size(temp,2) &lt; 3
+                <span class="comment">% Too short to modify &mdash; copy directly</span>
+                outTrain{counter} = temp;
+			    outTrainLabels(counter) = trainLabels(i);
+                counter = counter + 1;
+                <span class="keyword">continue</span>
+            <span class="keyword">end</span>
+
+			stretch_or_squeeze = randi([1 2]);
+
+			<span class="comment">% === FIRST EXCERPT &mdash; Stretching or Squeezing ===</span>
+			<span class="keyword">if</span> stretch_or_squeeze == 1
+				<span class="comment">% STRETCHING: repeat some points locally</span>
+				nSamples = size(temp,2);
+				a = 0;
+				b = nSamples/Ldiv;
+				excerpt = round((b-a).*rand()+ a);
+
+				cutA = round(nSamples*rand());
+				cutB = cutA+excerpt;
+				<span class="keyword">if</span> cutB &gt; nSamples, cutB = nSamples; <span class="keyword">end</span>
+				<span class="keyword">if</span> cutA == 0, cutA = 1; <span class="keyword">end</span>
+
+				<span class="comment">% Build index list of repeated samples</span>
+				excerpt = cutA:cutB;
+				excerpt2 = [];
+				<span class="keyword">for</span> j = excerpt
+					<span class="keyword">for</span> drawRes = 1:randi([0 1])
+						excerpt2 = [excerpt2, j];
+					<span class="keyword">end</span>
+				<span class="keyword">end</span>
+				<span class="comment">% Append original indices to retain structure</span>
+				<span class="keyword">for</span> drawRes = 1:nSamples
+					excerpt2 = [excerpt2, drawRes];
+				<span class="keyword">end</span>
+				excerpt = sort([excerpt2, excerpt]);
+				temp = temp(:, excerpt);
+			<span class="keyword">else</span>
+				<span class="comment">% SQUEEZING: randomly remove points from a window</span>
+				nSamples = size(temp,2);
+				a = 0;
+				b = nSamples/Ldiv;
+				wycinek = round((b-a).*rand()+ a);
+				cutA = round(nSamples*rand());
+				cutB = cutA+wycinek;
+				<span class="keyword">if</span> cutB &gt; nSamples, cutB = nSamples; <span class="keyword">end</span>
+				<span class="keyword">if</span> cutA == 0, cutA = 1; <span class="keyword">end</span>
+
+				excerpt = cutB:-3:cutA;
+				<span class="keyword">for</span> j = excerpt
+					drawRes = randi([1 2]);
+					<span class="keyword">for</span> L = 1:drawRes
+						<span class="keyword">if</span> j &lt;= size(temp,2)
+							temp(:,j) = [];
+						<span class="keyword">end</span>
+					<span class="keyword">end</span>
+				<span class="keyword">end</span>
+			<span class="keyword">end</span>
+			<span class="comment">% === END FIRST MODIFICATION ===</span>
+
+			<span class="comment">% === SECOND EXCERPT &mdash; Interpolation of a random subwindow ===</span>
+			nSamples = size(temp,2);
+			a = 0;
+			b = nSamples/Ldiv;
+			excerpt = round((b-a).*rand()+ a);
+			cutA = round(nSamples*rand());
+			<span class="keyword">if</span> cutA == 0, cutA=1; <span class="keyword">end</span>
+			cutB = cutA+excerpt;
+			<span class="keyword">if</span> cutB &gt; nSamples, cutB = nSamples; <span class="keyword">end</span>
+
+			subseq{1} = temp(:,cutA:cutB);
+			subseqLen = size(subseq{1},2);
+
+			incOrDec = randi([0 1]);
+			<span class="keyword">if</span> incOrDec == 0
+				percentIncrease = 2.*rand() + 1; <span class="comment">% Range [1&ndash;3]</span>
+			<span class="keyword">else</span>
+				percentIncrease = 0.7.*rand() + 0.3; <span class="comment">% Range [0.3&ndash;1]</span>
+			<span class="keyword">end</span>
+
+			newLen = round(percentIncrease * subseqLen);
+			subseqInterpolated = interpolateXT(subseq, newLen);
+			subseqInterpolated = subseqInterpolated{1};
+
+			<span class="keyword">if</span>(cutA &gt; 1)
+				tempLeft = temp(:, 1:cutA-1);
+			<span class="keyword">else</span>
+				tempLeft = [];
+			<span class="keyword">end</span>
+
+			<span class="keyword">if</span>(cutB &lt; nSamples)
+				tempRight = temp(:, cutB+1:nSamples);
+			<span class="keyword">else</span>
+				tempRight = [];
+			<span class="keyword">end</span>
+
+			<span class="comment">% Replace subwindow with interpolated one</span>
+			temp = [tempLeft subseqInterpolated tempRight];
+			<span class="comment">% === END INTERPOLATION ===</span>
+
+			outTrain{counter} = temp;
+			outTrainLabels(counter) = trainLabels(i);
+			counter = counter + 1;
+		<span class="keyword">end</span>
+	<span class="keyword">end</span>
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> XT = interpolateXT(XTinput,newLen)
+	<span class="comment">% Performs interpolation to resize a given segment to newLen</span>
+	XT = XTinput;
+
+	<span class="keyword">for</span> i=1:size(XT,1)
+		temp = XT{i}';
+
+		<span class="keyword">if</span> size(temp,1)==1
+			temp=[temp;temp];
+		<span class="keyword">end</span>
+
+		[initSize1, initSize2] = ndgrid(1:size(temp, 1), 1:size(temp, 2));
+		[newSize1, newSize2] = ndgrid(linspace(1, size(temp, 1), newLen), 1:size(temp, 2));
+		newData = interpn(initSize1, initSize2, temp, newSize1, newSize2);
+
+		XT{i}=newData';
+	<span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025a</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%
+% Augmentation method: Extended Window Warping (EWW)
+%
+% This function implements the EWW technique for augmenting multivariate time-series data.
+% The method is described in:
+% D. Warchoł, M. Oszust, Efficient augmentation of human action recog-
+% nition datasets with warped windows, Procedia Computer Science 207 (2022) 3018–3027.
+% It modifies local windows of the signal by:
+% 1. Randomly stretching or squeezing internal windows (simulating timing variations),
+% 2. Interpolating a second random window with varied scaling,
+% 3. Concatenating results back into the signal.
+%
+% Inputs:
+% - train: cell array of multivariate time-series samples (dim × time)
+% - trainLabels: corresponding class labels
+% - nDraws: number of augmented versions to generate per sample
+%
+% Outputs:
+% - outTrain: augmented training data
+% - outTrainLabels: corresponding labels for the augmented data
+
+function [outTrain, outTrainLabels] = aug_eww(train,trainLabels,nDraws)
+	% Allocate output arrays
+	outTrain = cell(1,length(trainLabels)*nDraws);
+    outTrainLabels = zeros(1,length(trainLabels)*nDraws);
+	xSize = size(train,2);
+	Ldiv = 3; % Used to define relative excerpt sizes
+
+	counter = 1;
+	for i = 1 : xSize
+		for iD = 1 : nDraws
+			temp = train{i};
+
+            if size(temp,2) < 3
+                % Too short to modify — copy directly
+                outTrain{counter} = temp;
+			    outTrainLabels(counter) = trainLabels(i);
+                counter = counter + 1;
+                continue
+            end
+			
+			stretch_or_squeeze = randi([1 2]);
+			
+			% === FIRST EXCERPT — Stretching or Squeezing ===
+			if stretch_or_squeeze == 1
+				% STRETCHING: repeat some points locally
+				nSamples = size(temp,2);
+				a = 0;
+				b = nSamples/Ldiv;
+				excerpt = round((b-a).*rand()+ a);
+				
+				cutA = round(nSamples*rand());
+				cutB = cutA+excerpt;
+				if cutB > nSamples, cutB = nSamples; end
+				if cutA == 0, cutA = 1; end
+				
+				% Build index list of repeated samples
+				excerpt = cutA:cutB;
+				excerpt2 = [];
+				for j = excerpt
+					for drawRes = 1:randi([0 1])
+						excerpt2 = [excerpt2, j];
+					end
+				end
+				% Append original indices to retain structure
+				for drawRes = 1:nSamples
+					excerpt2 = [excerpt2, drawRes];
+				end
+				excerpt = sort([excerpt2, excerpt]);
+				temp = temp(:, excerpt);
+			else
+				% SQUEEZING: randomly remove points from a window
+				nSamples = size(temp,2);
+				a = 0;
+				b = nSamples/Ldiv;
+				wycinek = round((b-a).*rand()+ a);
+				cutA = round(nSamples*rand());
+				cutB = cutA+wycinek;
+				if cutB > nSamples, cutB = nSamples; end
+				if cutA == 0, cutA = 1; end
+
+				excerpt = cutB:-3:cutA;
+				for j = excerpt
+					drawRes = randi([1 2]);
+					for L = 1:drawRes
+						if j <= size(temp,2)
+							temp(:,j) = [];
+						end
+					end
+				end
+			end
+			% === END FIRST MODIFICATION ===
+
+			% === SECOND EXCERPT — Interpolation of a random subwindow ===
+			nSamples = size(temp,2);
+			a = 0;
+			b = nSamples/Ldiv;
+			excerpt = round((b-a).*rand()+ a);
+			cutA = round(nSamples*rand());
+			if cutA == 0, cutA=1; end
+			cutB = cutA+excerpt;
+			if cutB > nSamples, cutB = nSamples; end
+
+			subseq{1} = temp(:,cutA:cutB);
+			subseqLen = size(subseq{1},2);
+			
+			incOrDec = randi([0 1]);
+			if incOrDec == 0
+				percentIncrease = 2.*rand() + 1; % Range [1–3]
+			else
+				percentIncrease = 0.7.*rand() + 0.3; % Range [0.3–1]
+			end
+
+			newLen = round(percentIncrease * subseqLen);
+			subseqInterpolated = interpolateXT(subseq, newLen);
+			subseqInterpolated = subseqInterpolated{1};
+
+			if(cutA > 1)
+				tempLeft = temp(:, 1:cutA-1);
+			else
+				tempLeft = [];
+			end
+
+			if(cutB < nSamples)
+				tempRight = temp(:, cutB+1:nSamples);
+			else
+				tempRight = [];
+			end
+
+			% Replace subwindow with interpolated one
+			temp = [tempLeft subseqInterpolated tempRight];
+			% === END INTERPOLATION ===
+
+			outTrain{counter} = temp;
+			outTrainLabels(counter) = trainLabels(i);
+			counter = counter + 1;
+		end
+	end
+end
+
+function XT = interpolateXT(XTinput,newLen)
+	% Performs interpolation to resize a given segment to newLen
+	XT = XTinput;
+
+	for i=1:size(XT,1)
+		temp = XT{i}';
+
+		if size(temp,1)==1
+			temp=[temp;temp];
+		end
+
+		[initSize1, initSize2] = ndgrid(1:size(temp, 1), 1:size(temp, 2));
+		[newSize1, newSize2] = ndgrid(linspace(1, size(temp, 1), newLen), 1:size(temp, 2));
+		newData = interpn(initSize1, initSize2, temp, newSize1, newSize2);
+
+		XT{i}=newData';
+	end
+end
+
+##### SOURCE END #####
+-->
+</body>
+</html>

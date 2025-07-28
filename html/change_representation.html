@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>Change representation of time-series by segment averaging</title>
+<meta name="generator" content="MATLAB 25.1">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-07-27">
+<meta name="DC.source" content="change_representation.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h1>Change representation of time-series by segment averaging</h1>
+<p>This function should be called after augmentation (e.g., after aug_adder) to extend and transform the time-series data of a testing set. It divides each sequence into a specified number of segments (segNum). Then it represents each segment by averaging feature values, effectively downsampling and smoothing the data in the feature dimension.</p>
+<p>Inputs: - set: cell array of multivariate time-series samples (features &times; time) - segNum: number of segments to divide each time-series into (default: 10)</p>
+<p>Outputs: - outSet: cell array of transformed time-series, each represented as a matrix where each row corresponds to a feature and columns are segment averages</p>
+<pre class="codeinput">
+<span class="keyword">function</span> outSet = change_representation(set, segNum)
+    <span class="keyword">if</span> nargin &lt; 2
+        segNum = 10; <span class="comment">% Default number of segments if not provided</span>
+    <span class="keyword">end</span>
+
+    outSet = cell(1, length(set));
+    <span class="keyword">for</span> i = 1:length(set)
+        <span class="comment">% Transpose to (time &times; features) for interpolation</span>
+        temp = set{i}';
+
+        original_len = size(temp, 1);
+        num_features = size(temp, 2);
+
+        <span class="comment">% Determine new length ensuring it is at least segNum and divisible by segNum</span>
+        newLen = max(segNum, ceil(original_len / segNum) * segNum);
+
+        <span class="comment">% Interpolation or repetition to adjust sequence length</span>
+        <span class="keyword">if</span> original_len &gt;= 3
+            <span class="comment">% Use multidimensional interpolation to smoothly resize data</span>
+            [initSize1, initSize2] = ndgrid(1:original_len, 1:num_features);
+            [newSize1, newSize2] = ndgrid(linspace(1, original_len, newLen), 1:num_features);
+            newData = interpn(initSize1, initSize2, temp, newSize1, newSize2);
+        <span class="keyword">else</span>
+            <span class="comment">% For very short sequences, repeat values to avoid interpolation artifacts</span>
+            newData = repmat(temp, ceil(newLen / original_len), 1);
+            newData = newData(1:newLen, :);
+        <span class="keyword">end</span>
+
+        <span class="comment">% Calculate size of each segment (integer division)</span>
+        segSize = floor(newLen / segNum);
+        representation = [];
+
+        <span class="keyword">for</span> d = 1:num_features
+            data = newData(:, d);
+
+            <span class="comment">% Standardize feature data to zero mean and unit variance</span>
+            data = (data - mean(data)) / std(data);
+
+            <span class="comment">% Replace any NaNs, some datasets may produce them</span>
+            <span class="keyword">if</span> any(isnan(data))
+                data(isnan(data)) = 0;
+            <span class="keyword">end</span>
+
+            <span class="comment">% Reshape data into segments (segSize &times; segNum)</span>
+            <span class="comment">% If reshape fails due to length mismatch, pad with zeros</span>
+            <span class="keyword">try</span>
+                reshaped = reshape(data, segSize, []);
+            <span class="keyword">catch</span>
+                padding = zeros(segSize * segNum - length(data), 1);
+                data = [data; padding];
+                reshaped = reshape(data, segSize, []);
+            <span class="keyword">end</span>
+
+            <span class="comment">% Replace NaNs in reshaped data to avoid NaN averages</span>
+            reshaped(isnan(reshaped)) = 0;
+
+            <span class="comment">% Compute mean of each segment (along rows)</span>
+            segments = mean(reshaped, 1);
+            segments(isnan(segments)) = 0;
+
+            <span class="comment">% Stack segment averages as rows (features &times; segments)</span>
+            representation = [representation; segments];
+        <span class="keyword">end</span>
+
+        <span class="comment">% Store the transformed sample in output cell array</span>
+        outSet{i} = representation;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025a</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% Change representation of time-series by segment averaging
+%
+% This function should be called after augmentation (e.g., after aug_adder)
+% to extend and transform the time-series data of a testing set.
+% It divides each sequence into a specified number of segments (segNum).
+% Then it represents each segment by averaging feature values, effectively
+% downsampling and smoothing the data in the feature dimension.
+%
+% Inputs:
+% - set: cell array of multivariate time-series samples (features × time)
+% - segNum: number of segments to divide each time-series into (default: 10)
+%
+% Outputs:
+% - outSet: cell array of transformed time-series, each represented as a matrix
+%           where each row corresponds to a feature and columns are segment averages
+
+
+function outSet = change_representation(set, segNum)
+    if nargin < 2
+        segNum = 10; % Default number of segments if not provided
+    end
+
+    outSet = cell(1, length(set));
+    for i = 1:length(set)
+        % Transpose to (time × features) for interpolation
+        temp = set{i}'; 
+        
+        original_len = size(temp, 1);
+        num_features = size(temp, 2);
+
+        % Determine new length ensuring it is at least segNum and divisible by segNum
+        newLen = max(segNum, ceil(original_len / segNum) * segNum);
+
+        % Interpolation or repetition to adjust sequence length
+        if original_len >= 3
+            % Use multidimensional interpolation to smoothly resize data
+            [initSize1, initSize2] = ndgrid(1:original_len, 1:num_features);
+            [newSize1, newSize2] = ndgrid(linspace(1, original_len, newLen), 1:num_features);
+            newData = interpn(initSize1, initSize2, temp, newSize1, newSize2);
+        else
+            % For very short sequences, repeat values to avoid interpolation artifacts
+            newData = repmat(temp, ceil(newLen / original_len), 1);
+            newData = newData(1:newLen, :);
+        end
+
+        % Calculate size of each segment (integer division)
+        segSize = floor(newLen / segNum);
+        representation = [];
+
+        for d = 1:num_features
+            data = newData(:, d);
+
+            % Standardize feature data to zero mean and unit variance
+            data = (data - mean(data)) / std(data);
+
+            % Replace any NaNs, some datasets may produce them
+            if any(isnan(data))
+                data(isnan(data)) = 0;
+            end
+
+            % Reshape data into segments (segSize × segNum)
+            % If reshape fails due to length mismatch, pad with zeros
+            try
+                reshaped = reshape(data, segSize, []);
+            catch
+                padding = zeros(segSize * segNum - length(data), 1);
+                data = [data; padding];
+                reshaped = reshape(data, segSize, []);
+            end
+
+            % Replace NaNs in reshaped data to avoid NaN averages
+            reshaped(isnan(reshaped)) = 0;
+
+            % Compute mean of each segment (along rows)
+            segments = mean(reshaped, 1);
+            segments(isnan(segments)) = 0;
+
+            % Stack segment averages as rows (features × segments)
+            representation = [representation; segments];
+        end
+
+        % Store the transformed sample in output cell array
+        outSet{i} = representation;
+    end
+end
+
+##### SOURCE END #####
+-->
+</body>
+</html>

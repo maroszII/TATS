@@ -1,0 +1,308 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>Augmentation method: Adder</title>
+<meta name="generator" content="MATLAB 25.1">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-07-27">
+<meta name="DC.source" content="aug_adder.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h1>Augmentation method: Adder</h1>
+<p>Based on:</p>
+<p>
+<b>M. Oszust, D. Warchoł, Time series augmentation with time-scale modifications and piecewise aggregate approximation for human action recognition, in: 2022 IEEE 34th International Conference on Tools with Artificial Intelligence (ICTAI), 2022, pp. 700&ndash;704.</b>
+</p>
+<p>This function augments multivariate time-series data by: 1. Resampling the series to a new length via interpolation (time scaling), 2. Applying Piecewise Aggregate Approximation (PAA): splitting the signal into equal-length segments and computing the mean of each segment.</p>
+<p>Inputs: - train: cell array of multivariate time-series samples (dim &times; time) - trainLabels: corresponding class labels - nDraws: number of augmented versions to generate per sample - segNum: number of segments for PAA (default = 10)</p>
+<p>Outputs: - outTrain: augmented training data - outTrainLabels: corresponding labels for the augmented data</p>
+<pre class="codeinput">
+<span class="keyword">function</span> [outTrain,outTrainLabels] = aug_adder(train,trainLabels,nDraws,segNum)
+
+<span class="comment">% Set default number of segments if not specified</span>
+<span class="keyword">if</span> nargin &lt; 4
+    segNum = 10;
+<span class="keyword">end</span>
+
+<span class="comment">% Preallocate output arrays</span>
+outTrain = cell(1, length(trainLabels) * nDraws);
+outTrainLabels = [];
+<span class="keyword">for</span> i = 1:nDraws
+    outTrainLabels = [outTrainLabels trainLabels];
+<span class="keyword">end</span>
+
+segNumOrig = segNum;
+
+<span class="comment">% Determine minimum and maximum series lengths in the training set</span>
+maxDl = 0;
+minDl = 10e10;
+<span class="keyword">for</span> i = 1:length(train)
+    mtemp = length(train{i});
+    maxDl = max(maxDl, mtemp);
+    minDl = min(minDl, mtemp);
+<span class="keyword">end</span>
+
+<span class="comment">% Define allowed interpolation lengths (multiples of segment count)</span>
+maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+minDlM = segNum;
+a = minDlM:segNum:maxDlM;
+
+counter = 1;
+<span class="keyword">for</span> lP = 1:nDraws
+    <span class="keyword">for</span> i = 1:length(train)
+        tempI = train{i};
+
+        <span class="comment">% Skip short samples (less than 3 time steps)</span>
+        <span class="keyword">if</span> size(tempI, 2) &lt; 3
+            outTrain{counter} = tempI;
+            outTrainLabels(counter) = trainLabels(i);
+            counter = counter + 1;
+            <span class="keyword">continue</span>
+        <span class="keyword">end</span>
+
+        <span class="comment">% Detemine number of segments based on random value from set of input numbers</span>
+        segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
+        segNum = segNum(randperm(length(segNum)));
+        segNum = segNum(1);
+        maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+        minDlM = segNum;
+        a = minDlM:segNum:maxDlM;
+
+
+        <span class="comment">% Randomly choose new length for resampling</span>
+        data_len = size(tempI, 2);
+        a_rand = a(randperm(length(a)));
+        aa = a_rand(1);
+        data_len = ceil(data_len / aa) * aa;
+
+        <span class="comment">% === Step 1: Interpolation (time-scale modification) ===</span>
+        <span class="comment">% Resample the time-series to the new length</span>
+        data = tempI';
+        newLen = data_len;
+        [initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
+        [newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
+        newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
+
+        <span class="comment">% === Step 2: Piecewise Aggregate Approximation (PAA) ===</span>
+        <span class="comment">% Divide each dimension into 'segNum' segments and average each</span>
+        segSiz = floor(data_len / segNum);
+        tempR = [];
+
+        <span class="keyword">for</span> d = 1:size(newData, 2)
+            data = newData(:, d);
+            data = (data - mean(data)) / std(data);  <span class="comment">% Z-normalization</span>
+
+            <span class="comment">% Reshape into segments (segSiz &times; segNum) and compute segment means</span>
+            dane = reshape(data, segSiz, segNum);
+            dane(isnan(dane)) = 0;  <span class="comment">% Handle numerical issues</span>
+            segments = mean(dane);  <span class="comment">% One value per segment (PAA)</span>
+
+            <span class="comment">% Ensure no NaNs remain</span>
+            segments(isnan(segments)) = 0;
+
+            <span class="comment">% Concatenate features from each dimension</span>
+            tempR = [tempR, segments'];
+        <span class="keyword">end</span>
+
+        <span class="comment">% Store the final augmented sample</span>
+        outTrain{counter} = tempR';  <span class="comment">% Shape: [feature &times; segment]</span>
+        counter = counter + 1;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025a</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% Augmentation method: Adder
+% 
+% Based on:
+% 
+% *M. Oszust, D. Warchoł, Time series augmentation with time-scale
+% modifications and piecewise aggregate approximation for human action 
+% recognition, in: 2022 IEEE 34th International Conference on Tools 
+% with Artificial Intelligence (ICTAI), 2022, pp. 700–704.*
+%
+% This function augments multivariate time-series data by:
+% 1. Resampling the series to a new length via interpolation (time scaling),
+% 2. Applying Piecewise Aggregate Approximation (PAA): splitting the signal into
+%    equal-length segments and computing the mean of each segment.
+%
+% Inputs:
+% - train: cell array of multivariate time-series samples (dim × time)
+% - trainLabels: corresponding class labels
+% - nDraws: number of augmented versions to generate per sample
+% - segNum: number of segments for PAA (default = 10)
+%
+% Outputs:
+% - outTrain: augmented training data
+% - outTrainLabels: corresponding labels for the augmented data
+
+function [outTrain,outTrainLabels] = aug_adder(train,trainLabels,nDraws,segNum)
+
+% Set default number of segments if not specified
+if nargin < 4
+    segNum = 10;
+end
+
+% Preallocate output arrays
+outTrain = cell(1, length(trainLabels) * nDraws); 
+outTrainLabels = [];
+for i = 1:nDraws
+    outTrainLabels = [outTrainLabels trainLabels];
+end
+
+segNumOrig = segNum;
+
+% Determine minimum and maximum series lengths in the training set
+maxDl = 0;
+minDl = 10e10;
+for i = 1:length(train)
+    mtemp = length(train{i});
+    maxDl = max(maxDl, mtemp);
+    minDl = min(minDl, mtemp);
+end	
+
+% Define allowed interpolation lengths (multiples of segment count)
+maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+minDlM = segNum;
+a = minDlM:segNum:maxDlM;
+
+counter = 1;
+for lP = 1:nDraws
+    for i = 1:length(train)
+        tempI = train{i};
+
+        % Skip short samples (less than 3 time steps)
+        if size(tempI, 2) < 3
+            outTrain{counter} = tempI;
+            outTrainLabels(counter) = trainLabels(i);
+            counter = counter + 1;
+            continue
+        end
+
+        % Detemine number of segments based on random value from set of input numbers        
+        segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
+        segNum = segNum(randperm(length(segNum))); 
+        segNum = segNum(1);
+        maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+        minDlM = segNum;
+        a = minDlM:segNum:maxDlM;
+         
+
+        % Randomly choose new length for resampling
+        data_len = size(tempI, 2);
+        a_rand = a(randperm(length(a)));
+        aa = a_rand(1);
+        data_len = ceil(data_len / aa) * aa;
+
+        % === Step 1: Interpolation (time-scale modification) ===
+        % Resample the time-series to the new length
+        data = tempI';
+        newLen = data_len;
+        [initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
+        [newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
+        newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
+
+        % === Step 2: Piecewise Aggregate Approximation (PAA) ===
+        % Divide each dimension into 'segNum' segments and average each
+        segSiz = floor(data_len / segNum);
+        tempR = [];
+
+        for d = 1:size(newData, 2)
+            data = newData(:, d);		
+            data = (data - mean(data)) / std(data);  % Z-normalization
+
+            % Reshape into segments (segSiz × segNum) and compute segment means
+            dane = reshape(data, segSiz, segNum); 
+            dane(isnan(dane)) = 0;  % Handle numerical issues
+            segments = mean(dane);  % One value per segment (PAA)
+
+            % Ensure no NaNs remain
+            segments(isnan(segments)) = 0;
+
+            % Concatenate features from each dimension
+            tempR = [tempR, segments'];
+        end
+
+        % Store the final augmented sample
+        outTrain{counter} = tempR';  % Shape: [feature × segment]
+        counter = counter + 1;
+    end
+end
+##### SOURCE END #####
+-->
+</body>
+</html>
