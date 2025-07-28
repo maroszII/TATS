@@ -1,0 +1,446 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>visualization_of_augmented_dataset</title>
+<meta name="generator" content="MATLAB 25.1">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-07-26">
+<meta name="DC.source" content="visualization_of_augmented_dataset.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">Visualization of Original and Augmented Dataset Using MDS Embedding</a>
+</li>
+<li>
+<a href="#2">Set random seed for reproducibility</a>
+</li>
+<li>
+<a href="#3">Map dataset names to their corresponding .mat files</a>
+</li>
+<li>
+<a href="#4">Load selected dataset</a>
+</li>
+<li>
+<a href="#5">Flatten the data structure to a cell array</a>
+</li>
+<li>
+<a href="#6">Determine number of augmented samples to generate</a>
+</li>
+<li>
+<a href="#7">Extract sequences (X) and labels (Y) from dataset</a>
+</li>
+<li>
+<a href="#8">Augment data using the provided function handle</a>
+</li>
+<li>
+<a href="#9">For selected methods, convert representation before appending</a>
+</li>
+<li>
+<a href="#10">Prepare for distance matrix computation</a>
+</li>
+<li>
+<a href="#11">Compute DTW distance matrix (quadratic cost)</a>
+</li>
+<li>
+<a href="#12">Apply MDS to project data into 2D space</a>
+</li>
+<li>
+<a href="#13">Plot results</a>
+</li>
+<li>
+<a href="#14">Format method name for title</a>
+</li>
+<li>
+<a href="#15">Show plot</a>
+</li>
+</ul>
+</div>
+<h2 id="1">Visualization of Original and Augmented Dataset Using MDS Embedding</h2>
+<p>This script visualizes the distribution of samples before and after data augmentation, using Multidimensional Scaling (MDS) based on DTW distance. The goal is to reveal issues such as class overlap or insufficient diversity introduced by augmentation.</p>
+<p>Inputs: - augFunction: function handle for augmentation method (e.g., @aug_dba, @aug_warp, etc.); use 'no aug' to skip augmentation. - dataset: string specifying the dataset name (e.g., 'florence', 'kard', 'eeg'). - augSetSize: multiplier of the original training set (e.g., 1.0 = same size as original).</p>
+<p>The script performs the following steps: 1. Loads the specified dataset and reformats the data. 2. Applies the selected augmentation method to produce additional training samples. 3. Computes the DTW-based distance matrix. 4. Reduces dimensionality via MDS. 5. Plots original and augmented samples for visual inspection.</p>
+<pre class="codeinput">
+<span class="keyword">function</span> visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
+</pre>
+<h2 id="2">Set random seed for reproducibility</h2>
+<pre class="codeinput">    randn(<span class="string">'seed'</span>, 0);
+    rand(<span class="string">'seed'</span>, 0);
+</pre>
+<h2 id="3">Map dataset names to their corresponding .mat files</h2>
+<pre class="codeinput">    datasetFiles = struct( <span class="keyword">...</span>
+        <span class="string">'florence'</span>, <span class="string">'actionCoordsFLORENCE.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'kard'</span>, <span class="string">'actionCoordsKARD.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'msra'</span>, <span class="string">'actionCoordsMSRA.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'sysu'</span>, <span class="string">'actionCoordsSYSU.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'utd'</span>, <span class="string">'actionCoordsUTD.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'utk'</span>, <span class="string">'actionCoordsUTK.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'visapp'</span>, <span class="string">'actionCoordsVISAPP.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'arem'</span>, <span class="string">'AReM.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'auslan'</span>, <span class="string">'AUSLAN.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'ecg'</span>, <span class="string">'ECG.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'eeg'</span>, <span class="string">'EEG.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'gesturephasedetect'</span>, <span class="string">'GesturePhaseDetect.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'kickvspunch'</span>, <span class="string">'KickVsPunch.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'libras'</span>, <span class="string">'LIBRAS.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'movementaal'</span>, <span class="string">'MovementAAL.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'occupancydetect'</span>, <span class="string">'OccupancyDetect.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'ozone'</span>, <span class="string">'Ozone.mat'</span>, <span class="keyword">...</span>
+        <span class="string">'pendigits'</span>, <span class="string">'Pendigits.mat'</span> <span class="keyword">...</span>
+    );
+</pre>
+<h2 id="4">Load selected dataset</h2>
+<pre class="codeinput">    <span class="keyword">if</span> isfield(datasetFiles, lower(dataset))
+        data = importdata(datasetFiles.(lower(dataset)));
+    <span class="keyword">else</span>
+        error(<span class="string">'Unknown dataset name.'</span>);
+    <span class="keyword">end</span>
+</pre>
+<h2 id="5">Flatten the data structure to a cell array</h2>
+<pre class="codeinput">    subjectsNumber = length(data);
+    Data = {};
+    <span class="keyword">for</span> s = 1 : subjectsNumber
+        Data = cat(1, Data, data{s});
+    <span class="keyword">end</span>
+    data = Data;
+</pre>
+<h2 id="6">Determine number of augmented samples to generate</h2>
+<pre class="codeinput">    targetAugSamNum = augSetSize * length(data);
+</pre>
+<h2 id="7">Extract sequences (X) and labels (Y) from dataset</h2>
+<pre class="codeinput">    numOriginalSamples = length(data);
+    data_X = cell(1, numOriginalSamples);
+    data_Y = zeros(1, numOriginalSamples);
+    <span class="keyword">for</span> i = 1:numOriginalSamples
+        data_X{i} = data{i, 1}';
+        data_Y(i) = str2double(data{i, 2});
+    <span class="keyword">end</span>
+</pre>
+<h2 id="8">Augment data using the provided function handle</h2>
+<pre class="codeinput">    <span class="keyword">if</span> isa(augFunction, <span class="string">'function_handle'</span>)
+        OutTrain = {};
+        OutTrainLabels = [];
+
+        <span class="keyword">while</span> length(OutTrain) &lt; targetAugSamNum
+            [out_temp, out_lab_temp] = augment(data_X, data_Y, augFunction, 1);
+            OutTrain = [OutTrain, out_temp];
+            OutTrainLabels = [OutTrainLabels, out_lab_temp];
+        <span class="keyword">end</span>
+
+        <span class="comment">% Truncate augmented data if too long</span>
+        <span class="keyword">while</span> length(OutTrain) &gt; targetAugSamNum
+            index = randi(length(OutTrain));
+            OutTrain(index) = [];
+            OutTrainLabels(index) = [];
+        <span class="keyword">end</span>
+</pre>
+<h2 id="9">For selected methods, convert representation before appending</h2>
+<pre class="codeinput">        <span class="keyword">if</span> strcmp(func2str(augFunction), <span class="string">'aug_adder'</span>)
+            data_X = change_representation(data_X);
+        <span class="keyword">end</span>
+
+        <span class="comment">% Merge original and augmented data</span>
+        data_X = [data_X, OutTrain];
+        data_Y = [data_Y, OutTrainLabels];
+    <span class="keyword">end</span>
+</pre>
+<h2 id="10">Prepare for distance matrix computation</h2>
+<pre class="codeinput">    AllData = data_X;
+    AllLabels = data_Y;
+    numSamples = length(AllData);
+</pre>
+<h2 id="11">Compute DTW distance matrix (quadratic cost)</h2>
+<pre class="codeinput">    D = zeros(numSamples, numSamples);
+    <span class="keyword">for</span> i = 1:numSamples - 1
+        <span class="keyword">for</span> j = i + 1:numSamples
+            D(i, j) = dtw(AllData{i}, AllData{j}, 5, <span class="string">'euclidean'</span>);
+            D(j, i) = D(i, j);
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+</pre>
+<h2 id="12">Apply MDS to project data into 2D space</h2>
+<pre class="codeinput">    Y_all = mdscale(D, 2, <span class="string">'Start'</span>, <span class="string">'random'</span>);
+</pre>
+<h2 id="13">Plot results</h2>
+<pre class="codeinput">    figure;
+    hold <span class="string">on</span>;
+
+    <span class="comment">% Use circles for original samples, crosses for augmented</span>
+    originalMarker = <span class="string">'o'</span>;
+    augmentedMarker = <span class="string">'x'</span>;
+
+    uniqueLabels = unique(AllLabels);
+    colors = lines(length(uniqueLabels));
+    legendEntries = gobjects(length(uniqueLabels) * 2, 1);
+    legendNames = cell(length(uniqueLabels) * 2, 1);
+
+    <span class="keyword">for</span> i = 1:length(uniqueLabels)
+        classLabel = uniqueLabels(i);
+        originalIdx = find(AllLabels(1:numOriginalSamples) == classLabel);
+        augmentedIdx = find(AllLabels(numOriginalSamples + 1:end) == classLabel) + numOriginalSamples;
+
+        legendEntries(2 * i - 1) = scatter(Y_all(originalIdx, 1), Y_all(originalIdx, 2), 50, colors(i, :), originalMarker, <span class="string">'filled'</span>);
+        legendNames{2 * i - 1} = sprintf(<span class="string">'Class %d (Original)'</span>, classLabel);
+
+        legendEntries(2 * i) = scatter(Y_all(augmentedIdx, 1), Y_all(augmentedIdx, 2), 50, colors(i, :), augmentedMarker);
+        legendNames{2 * i} = sprintf(<span class="string">'Class %d (Augmented)'</span>, classLabel);
+    <span class="keyword">end</span>
+</pre>
+<h2 id="14">Format method name for title</h2>
+<pre class="codeinput">    methodName = func2str(augFunction);
+    <span class="keyword">if</span> startsWith(methodName, <span class="string">'aug_'</span>)
+        methodName = methodName(5:end);
+    <span class="keyword">end</span>
+    methodName = upper(methodName);
+</pre>
+<h2 id="15">Show plot</h2>
+<pre class="codeinput">    title({sprintf(<span class="string">'MDS - %s dataset'</span>, dataset), sprintf(<span class="string">'\\bf{Augmentation: %s}'</span>, methodName)}, <span class="string">'Interpreter'</span>, <span class="string">'tex'</span>);
+    xlabel(<span class="string">'Dimension 1'</span>);
+    ylabel(<span class="string">'Dimension 2'</span>);
+    legend(legendEntries, legendNames);
+    hold <span class="string">off</span>;
+
+<span class="keyword">end</span>
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025a</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% Visualization of Original and Augmented Dataset Using MDS Embedding
+%
+% This script visualizes the distribution of samples before and after data augmentation,
+% using Multidimensional Scaling (MDS) based on DTW distance. The goal is to reveal issues
+% such as class overlap or insufficient diversity introduced by augmentation.
+%
+% Inputs:
+% - augFunction: function handle for augmentation method (e.g., @aug_dba, @aug_warp, etc.);
+%                use 'no aug' to skip augmentation.
+% - dataset: string specifying the dataset name (e.g., 'florence', 'kard', 'eeg').
+% - augSetSize: multiplier of the original training set (e.g., 1.0 = same size as original).
+%
+% The script performs the following steps:
+% 1. Loads the specified dataset and reformats the data.
+% 2. Applies the selected augmentation method to produce additional training samples.
+% 3. Computes the DTW-based distance matrix.
+% 4. Reduces dimensionality via MDS.
+% 5. Plots original and augmented samples for visual inspection.
+
+function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
+
+    %%% Set random seed for reproducibility
+    randn('seed', 0);
+    rand('seed', 0);
+
+    %%% Map dataset names to their corresponding .mat files
+    datasetFiles = struct( ...
+        'florence', 'actionCoordsFLORENCE.mat', ...
+        'kard', 'actionCoordsKARD.mat', ...
+        'msra', 'actionCoordsMSRA.mat', ...
+        'sysu', 'actionCoordsSYSU.mat', ...
+        'utd', 'actionCoordsUTD.mat', ...
+        'utk', 'actionCoordsUTK.mat', ...
+        'visapp', 'actionCoordsVISAPP.mat', ...
+        'arem', 'AReM.mat', ...
+        'auslan', 'AUSLAN.mat', ...
+        'ecg', 'ECG.mat', ...
+        'eeg', 'EEG.mat', ...
+        'gesturephasedetect', 'GesturePhaseDetect.mat', ...
+        'kickvspunch', 'KickVsPunch.mat', ...
+        'libras', 'LIBRAS.mat', ...
+        'movementaal', 'MovementAAL.mat', ...
+        'occupancydetect', 'OccupancyDetect.mat', ...
+        'ozone', 'Ozone.mat', ...
+        'pendigits', 'Pendigits.mat' ...
+    );
+
+    %%% Load selected dataset
+    if isfield(datasetFiles, lower(dataset))
+        data = importdata(datasetFiles.(lower(dataset)));
+    else
+        error('Unknown dataset name.');
+    end
+
+    %%% Flatten the data structure to a cell array
+    subjectsNumber = length(data);
+    Data = {};
+    for s = 1 : subjectsNumber
+        Data = cat(1, Data, data{s});
+    end
+    data = Data;
+
+    %%% Determine number of augmented samples to generate
+    targetAugSamNum = augSetSize * length(data);
+
+    %%% Extract sequences (X) and labels (Y) from dataset
+    numOriginalSamples = length(data);
+    data_X = cell(1, numOriginalSamples);
+    data_Y = zeros(1, numOriginalSamples);
+    for i = 1:numOriginalSamples
+        data_X{i} = data{i, 1}';
+        data_Y(i) = str2double(data{i, 2});
+    end
+
+    %%% Augment data using the provided function handle
+    if isa(augFunction, 'function_handle')
+        OutTrain = {};
+        OutTrainLabels = [];
+
+        while length(OutTrain) < targetAugSamNum
+            [out_temp, out_lab_temp] = augment(data_X, data_Y, augFunction, 1);
+            OutTrain = [OutTrain, out_temp];
+            OutTrainLabels = [OutTrainLabels, out_lab_temp];
+        end
+
+        % Truncate augmented data if too long
+        while length(OutTrain) > targetAugSamNum
+            index = randi(length(OutTrain));
+            OutTrain(index) = [];
+            OutTrainLabels(index) = [];
+        end
+
+        %%% For selected methods, convert representation before appending
+        if strcmp(func2str(augFunction), 'aug_adder')
+            data_X = change_representation(data_X);
+        end
+
+        % Merge original and augmented data
+        data_X = [data_X, OutTrain];
+        data_Y = [data_Y, OutTrainLabels];
+    end
+
+    %%% Prepare for distance matrix computation
+    AllData = data_X;
+    AllLabels = data_Y;
+    numSamples = length(AllData);
+
+    %%% Compute DTW distance matrix (quadratic cost)
+    D = zeros(numSamples, numSamples);
+    for i = 1:numSamples - 1
+        for j = i + 1:numSamples
+            D(i, j) = dtw(AllData{i}, AllData{j}, 5, 'euclidean');
+            D(j, i) = D(i, j);
+        end
+    end
+
+    %%% Apply MDS to project data into 2D space
+    Y_all = mdscale(D, 2, 'Start', 'random');
+
+    %%% Plot results
+    figure;
+    hold on;
+
+    % Use circles for original samples, crosses for augmented
+    originalMarker = 'o';
+    augmentedMarker = 'x';
+
+    uniqueLabels = unique(AllLabels);
+    colors = lines(length(uniqueLabels));
+    legendEntries = gobjects(length(uniqueLabels) * 2, 1);
+    legendNames = cell(length(uniqueLabels) * 2, 1);
+
+    for i = 1:length(uniqueLabels)
+        classLabel = uniqueLabels(i);
+        originalIdx = find(AllLabels(1:numOriginalSamples) == classLabel);
+        augmentedIdx = find(AllLabels(numOriginalSamples + 1:end) == classLabel) + numOriginalSamples;
+
+        legendEntries(2 * i - 1) = scatter(Y_all(originalIdx, 1), Y_all(originalIdx, 2), 50, colors(i, :), originalMarker, 'filled');
+        legendNames{2 * i - 1} = sprintf('Class %d (Original)', classLabel);
+
+        legendEntries(2 * i) = scatter(Y_all(augmentedIdx, 1), Y_all(augmentedIdx, 2), 50, colors(i, :), augmentedMarker);
+        legendNames{2 * i} = sprintf('Class %d (Augmented)', classLabel);
+    end
+
+    %%% Format method name for title
+    methodName = func2str(augFunction);
+    if startsWith(methodName, 'aug_')
+        methodName = methodName(5:end);
+    end
+    methodName = upper(methodName);
+
+    %%% Show plot
+    title({sprintf('MDS - %s dataset', dataset), sprintf('\\bf{Augmentation: %s}', methodName)}, 'Interpreter', 'tex');
+    xlabel('Dimension 1');
+    ylabel('Dimension 2');
+    legend(legendEntries, legendNames);
+    hold off;
+
+end
+
+##### SOURCE END #####
+-->
+</body>
+</html>
