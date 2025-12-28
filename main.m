@@ -30,19 +30,19 @@ disp('TATS: Toolbox for Augmenting Time-Series')
 % * 'MSRA' - https://sites.google.com/view/wanqingli/data-sets/msr-action3d  
 % * 'UTD' - https://personal.utdallas.edu/~kehtar/UTD-MHAD.html  
 % * 'UTK' - http://cvrc.ece.utexas.edu/KinectDatasets/HOJ3D.html  
-% * 'VISAPP' - https://www.scitepress.org/Link.aspx?doi=10.5220/0004217606200625
+% * 'VISAPP' - https://www.scitepress.org/Link.aspx?doi=10.5220/0004217606200625, https://web.archive.org/web/20121025131124/https://mll.sehir.edu.tr/visapp2013
 % * 'AReM' - https://archive.ics.uci.edu/dataset/366/activity+recognition+system+based+on+multisensor+data+fusion+arem  
 % * 'AUSLAN' - https://archive.ics.uci.edu/dataset/115/australian+sign+language+signs+high+quality  
 % * 'ECG' - https://www.cs.cmu.edu/~bobski/data/data.html  
 % * 'EEG' - https://archive.ics.uci.edu/dataset/121/eeg+database  
 % * 'GesturePhaseDetect' - https://archive.ics.uci.edu/dataset/302/gesture+phase+segmentation  
-% * 'KickVsPunch' - http://mocap.cs.cmu.edu  
+% * 'KickVsPunch' - http://mocap.cs.cmu.edu, https://zenodo.org/records/10852865, http://link.springer.com/article/10.1007/s10618-015-0425-y  
 % * 'LIBRAS' - https://archive.ics.uci.edu/dataset/181/libras+movement  
 % * 'MovementAAL' - https://archive.ics.uci.edu/dataset/348/indoor+user+movement+prediction+from+rss+data  
 % * 'OccupancyDetect' - https://archive.ics.uci.edu/dataset/357/occupancy+detection  
 % * 'Ozone' - https://archive.ics.uci.edu/dataset/172/ozone+level+detection  
 % * 'Pendigits' - https://archive.ics.uci.edu/dataset/81/pen+based+recognition+of+handwritten+digits  
-%   (training and testing sets swapped for higher difficulty)
+%   (training and testing sets swapped for higher difficulty)"
 
 dataset = 'UTK'; 
 
@@ -141,3 +141,4 @@ augmentationMethods = {
 % Uncomment below lines to run batch tests and visualize results.
 run_multiple_augmentation_methods  
 visualize_results  
+
