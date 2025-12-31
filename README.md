@@ -97,10 +97,10 @@ The datasets supported by TATS originate from publicly available sources. If you
   [https://data.mendeley.com/datasets/k28dtm7tr6/1](https://data.mendeley.com/datasets/k28dtm7tr6/1)
 
 * MSR Action3D Dataset:
-  [https://sites.google.com/view/wanqingli/data-sets/msr-action3d](https://sites.google.com/view/wanqingli/data-sets/msr-action3d)
+  [https://www.kaggle.com/datasets/ghazouanihaythem/msraction3dskeleton20joints](https://www.kaggle.com/datasets/ghazouanihaythem/msraction3dskeleton20joints)
 
 * UTD-MHAD Dataset:
-  [https://personal.utdallas.edu/~kehtar/UTD-MHAD.html](https://personal.utdallas.edu/~kehtar/UTD-MHAD.html)
+  [https://www.kaggle.com/datasets/dasmehdixtr/human-action-recognition-dataset](https://www.kaggle.com/datasets/dasmehdixtr/human-action-recognition-dataset)
 
 * UTKinect / HOJ3D Dataset:
   [http://cvrc.ece.utexas.edu/KinectDatasets/HOJ3D.html](http://cvrc.ece.utexas.edu/KinectDatasets/HOJ3D.html)
@@ -128,6 +128,7 @@ The datasets supported by TATS originate from publicly available sources. If you
   [http://mocap.cs.cmu.edu](http://mocap.cs.cmu.edu)
   [https://zenodo.org/records/10852865](https://zenodo.org/records/10852865)
   [http://link.springer.com/article/10.1007/s10618-015-0425-y](http://link.springer.com/article/10.1007/s10618-015-0425-y)
+  [https://github.com/maroszII/TATS/blob/main/datasets/KickVsPunch.rar]( https://github.com/maroszII/TATS/blob/main/datasets/KickVsPunch.rar)
 
 * LIBRAS Movement Dataset (UCI ML Repository):
   [https://archive.ics.uci.edu/dataset/181/libras+movement](https://archive.ics.uci.edu/dataset/181/libras+movement)
