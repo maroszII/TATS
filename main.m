@@ -7,7 +7,7 @@
 %
 % Emails: dawwar@prz.edu.pl, marosz@kia.prz.edu.pl  
 %
-% Date: 2025-07-28 
+% Date: 2025-02-20 
 % Version: 2.0  
 
 %% Initialization
@@ -44,12 +44,13 @@ disp('TATS: Toolbox for Augmenting Time-Series')
 % * 'Pendigits' - https://archive.ics.uci.edu/dataset/81/pen+based+recognition+of+handwritten+digits  
 %   (training and testing sets swapped for higher difficulty)"
 
-dataset = 'UTK'; 
+dataset = 'VISAPP'; 
 
 %% Augmentation and Repetition Parameters
-% Define augmentation set size and the number of test repetitions.
-augSetSize = 1;           % 1 means 100% of original training set size.
-repetitions = 10;         % Number of test repetitions (ignored if 'no aug' is selected).
+% Define augmented set size, the number of test repetitions and normalization metdhod.
+parameters.augSetSize = 1;          % The size of augmented set; 1 means 100% of original training set size.
+parameters.repetitions = 10;        % Number of test repetitions (ignored if 'no aug' is selected).
+parameters.normalization = 0;       % Dataset normalization: 0 - none, 1 - min-max, 2 - z-score
 
 %% Classifier Selection
 % Choose from the following classifiers:
@@ -61,7 +62,7 @@ repetitions = 10;         % Number of test repetitions (ignored if 'no aug' is s
 % * 'GRU' - Gated Recurrent Unit Network  
 % * 'Transformer' - Transformer Network  
 
-classifier = 'LSTM';
+classifier = 'LSTM' ;
 
 % Set classifier-specific parameters.
 if strcmpi(classifier,'DTW')
@@ -122,24 +123,24 @@ end
 % * @aug_adder - Adder  
 % * 'no aug' - No augmentation
 
-augmentationMethod = @aug_adder;
+augmentationMethod = @aug_ws  ;
 
 % Run one experiment using the selected augmentation method.
-% accuracy = validation_tests(augmentationMethod, classifier, dataset, repetitions, parameters, augSetSize);
+%[accuracies, metrics, augTime] = validation_tests(augmentationMethod, classifier, dataset, parameters);
 
 %% Multiple Augmentation Methods (Optional)
 % Evaluate multiple augmentation methods and visualize results.
 %
 % Multiprocessing greatly reduces testing time on multi-core CPUs.  
 % It is not supported when using GPU-based deep learning classifier (LSTM, GRU or Transformer).
-multiprocessing = false; 
+% multiprocessing = true; 
 
-augmentationMethods = {
-    @aug_ws, @aug_ww, @aug_mw, @aug_jitter, @aug_rotation, @aug_dba, ...
-    @aug_spawner, @aug_arspawner, @aug_eww, @aug_adder, 'no aug' }; 
+
+	
+  augmentationMethods = {
+  @aug_ws, @aug_ww, @aug_mw, @aug_jitter, @aug_rotation, @aug_dba, ...
+  @aug_spawner, @aug_arspawner, @aug_eww, @aug_adder, 'no aug' }; 
 
 % Uncomment below lines to run batch tests and visualize results.
-run_multiple_augmentation_methods  
-visualize_results  
-
-
+ run_multiple_augmentation_methods  
+ visualize_results
