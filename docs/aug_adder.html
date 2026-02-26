@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>Augmentation method: Adder</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2025-07-27">
+<meta name="DC.date" content="2026-02-26">
 <meta name="DC.source" content="aug_adder.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -86,96 +86,95 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <p>Outputs: - outTrain: augmented training data - outTrainLabels: corresponding labels for the augmented data</p>
 <pre class="codeinput">
 <span class="keyword">function</span> [outTrain,outTrainLabels] = aug_adder(train,trainLabels,nDraws,segNum)
+	<span class="comment">% Set default number of segments if not specified</span>
+	<span class="keyword">if</span> nargin &lt; 4
+		segNum = 10;
+	<span class="keyword">end</span>
 
-<span class="comment">% Set default number of segments if not specified</span>
-<span class="keyword">if</span> nargin &lt; 4
-    segNum = 10;
-<span class="keyword">end</span>
+	<span class="comment">% Preallocate output arrays</span>
+	outTrain = cell(1, length(trainLabels) * nDraws);
+	outTrainLabels = [];
+	<span class="keyword">for</span> i = 1:nDraws
+		outTrainLabels = [outTrainLabels trainLabels];
+	<span class="keyword">end</span>
 
-<span class="comment">% Preallocate output arrays</span>
-outTrain = cell(1, length(trainLabels) * nDraws);
-outTrainLabels = [];
-<span class="keyword">for</span> i = 1:nDraws
-    outTrainLabels = [outTrainLabels trainLabels];
-<span class="keyword">end</span>
+	segNumOrig = segNum;
 
-segNumOrig = segNum;
+	<span class="comment">% Determine minimum and maximum series lengths in the training set</span>
+	maxDl = 0;
+	minDl = 10e10;
+	<span class="keyword">for</span> i = 1:length(train)
+		mtemp = length(train{i});
+		maxDl = max(maxDl, mtemp);
+		minDl = min(minDl, mtemp);
+	<span class="keyword">end</span>
 
-<span class="comment">% Determine minimum and maximum series lengths in the training set</span>
-maxDl = 0;
-minDl = 10e10;
-<span class="keyword">for</span> i = 1:length(train)
-    mtemp = length(train{i});
-    maxDl = max(maxDl, mtemp);
-    minDl = min(minDl, mtemp);
-<span class="keyword">end</span>
+	<span class="comment">% Define allowed interpolation lengths (multiples of segment count)</span>
+	maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+	minDlM = segNum;
+	a = minDlM:segNum:maxDlM;
 
-<span class="comment">% Define allowed interpolation lengths (multiples of segment count)</span>
-maxDlM = ceil(maxDl * 2 / segNum) * segNum;
-minDlM = segNum;
-a = minDlM:segNum:maxDlM;
+	counter = 1;
+	<span class="keyword">for</span> lP = 1:nDraws
+		<span class="keyword">for</span> i = 1:length(train)
+			tempI = train{i};
 
-counter = 1;
-<span class="keyword">for</span> lP = 1:nDraws
-    <span class="keyword">for</span> i = 1:length(train)
-        tempI = train{i};
+			<span class="comment">% Skip short samples (less than 3 time steps)</span>
+			<span class="keyword">if</span> size(tempI, 2) &lt; 3
+				outTrain{counter} = tempI;
+				outTrainLabels(counter) = trainLabels(i);
+				counter = counter + 1;
+				<span class="keyword">continue</span>
+			<span class="keyword">end</span>
 
-        <span class="comment">% Skip short samples (less than 3 time steps)</span>
-        <span class="keyword">if</span> size(tempI, 2) &lt; 3
-            outTrain{counter} = tempI;
-            outTrainLabels(counter) = trainLabels(i);
-            counter = counter + 1;
-            <span class="keyword">continue</span>
-        <span class="keyword">end</span>
+			<span class="comment">% Detemine number of segments based on random value from set of input numbers</span>
+			segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
+			segNum = segNum(randperm(length(segNum)));
+			segNum = segNum(1);
+			maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+			minDlM = segNum;
+			a = minDlM:segNum:maxDlM;
 
-        <span class="comment">% Detemine number of segments based on random value from set of input numbers</span>
-        segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
-        segNum = segNum(randperm(length(segNum)));
-        segNum = segNum(1);
-        maxDlM = ceil(maxDl * 2 / segNum) * segNum;
-        minDlM = segNum;
-        a = minDlM:segNum:maxDlM;
+			<span class="comment">% Randomly choose new length for resampling</span>
+			data_len = size(tempI, 2);
+			a_rand = a(randperm(length(a)));
+			aa = a_rand(1);
+			data_len = ceil(data_len / aa) * aa;
 
+			<span class="comment">% === Step 1: Interpolation (time-scale modification) ===</span>
+			<span class="comment">% Resample the time-series to the new length</span>
+			data = tempI';
+			newLen = data_len;
+			[initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
+			[newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
+			newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
 
-        <span class="comment">% Randomly choose new length for resampling</span>
-        data_len = size(tempI, 2);
-        a_rand = a(randperm(length(a)));
-        aa = a_rand(1);
-        data_len = ceil(data_len / aa) * aa;
+			<span class="comment">% === Step 2: Piecewise Aggregate Approximation (PAA) ===</span>
+			<span class="comment">% Divide each dimension into 'segNum' segments and average each</span>
+			segSiz = floor(data_len / segNum);
+			tempR = [];
 
-        <span class="comment">% === Step 1: Interpolation (time-scale modification) ===</span>
-        <span class="comment">% Resample the time-series to the new length</span>
-        data = tempI';
-        newLen = data_len;
-        [initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
-        [newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
-        newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
+			<span class="keyword">for</span> d = 1:size(newData, 2)
+				data = newData(:, d);
+				data = (data - mean(data)) / std(data);  <span class="comment">% Z-normalization</span>
 
-        <span class="comment">% === Step 2: Piecewise Aggregate Approximation (PAA) ===</span>
-        <span class="comment">% Divide each dimension into 'segNum' segments and average each</span>
-        segSiz = floor(data_len / segNum);
-        tempR = [];
+				<span class="comment">% Reshape into segments (segSiz &times; segNum) and compute segment means</span>
+				dane = reshape(data, segSiz, segNum);
+				dane(isnan(dane)) = 0;  <span class="comment">% Handle numerical issues</span>
+				segments = mean(dane);  <span class="comment">% One value per segment (PAA)</span>
 
-        <span class="keyword">for</span> d = 1:size(newData, 2)
-            data = newData(:, d);
-            data = (data - mean(data)) / std(data);  <span class="comment">% Z-normalization</span>
+				<span class="comment">% Ensure no NaNs remain</span>
+				segments(isnan(segments)) = 0;
 
-            <span class="comment">% Reshape into segments (segSiz &times; segNum) and compute segment means</span>
-            dane = reshape(data, segSiz, segNum);
-            dane(isnan(dane)) = 0;  <span class="comment">% Handle numerical issues</span>
-            segments = mean(dane);  <span class="comment">% One value per segment (PAA)</span>
+				<span class="comment">% Concatenate features from each dimension</span>
+				tempR = [tempR, segments'];
+			<span class="keyword">end</span>
 
-            <span class="comment">% Ensure no NaNs remain</span>
-            segments(isnan(segments)) = 0;
-
-            <span class="comment">% Concatenate features from each dimension</span>
-            tempR = [tempR, segments'];
-        <span class="keyword">end</span>
-
-        <span class="comment">% Store the final augmented sample</span>
-        outTrain{counter} = tempR';  <span class="comment">% Shape: [feature &times; segment]</span>
-        counter = counter + 1;
-    <span class="keyword">end</span>
+			<span class="comment">% Store the final augmented sample</span>
+			outTrain{counter} = tempR';  <span class="comment">% Shape: [feature &times; segment]</span>
+			counter = counter + 1;
+		<span class="keyword">end</span>
+	<span class="keyword">end</span>
 <span class="keyword">end</span>
 </pre>
 <p class="footer">
@@ -211,96 +210,95 @@ counter = 1;
 % - outTrainLabels: corresponding labels for the augmented data
 
 function [outTrain,outTrainLabels] = aug_adder(train,trainLabels,nDraws,segNum)
+	% Set default number of segments if not specified
+	if nargin < 4
+		segNum = 10;
+	end
 
-% Set default number of segments if not specified
-if nargin < 4
-    segNum = 10;
-end
+	% Preallocate output arrays
+	outTrain = cell(1, length(trainLabels) * nDraws); 
+	outTrainLabels = [];
+	for i = 1:nDraws
+		outTrainLabels = [outTrainLabels trainLabels];
+	end
 
-% Preallocate output arrays
-outTrain = cell(1, length(trainLabels) * nDraws); 
-outTrainLabels = [];
-for i = 1:nDraws
-    outTrainLabels = [outTrainLabels trainLabels];
-end
+	segNumOrig = segNum;
 
-segNumOrig = segNum;
+	% Determine minimum and maximum series lengths in the training set
+	maxDl = 0;
+	minDl = 10e10;
+	for i = 1:length(train)
+		mtemp = length(train{i});
+		maxDl = max(maxDl, mtemp);
+		minDl = min(minDl, mtemp);
+	end	
 
-% Determine minimum and maximum series lengths in the training set
-maxDl = 0;
-minDl = 10e10;
-for i = 1:length(train)
-    mtemp = length(train{i});
-    maxDl = max(maxDl, mtemp);
-    minDl = min(minDl, mtemp);
-end	
+	% Define allowed interpolation lengths (multiples of segment count)
+	maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+	minDlM = segNum;
+	a = minDlM:segNum:maxDlM;
 
-% Define allowed interpolation lengths (multiples of segment count)
-maxDlM = ceil(maxDl * 2 / segNum) * segNum;
-minDlM = segNum;
-a = minDlM:segNum:maxDlM;
+	counter = 1;
+	for lP = 1:nDraws
+		for i = 1:length(train)
+			tempI = train{i};
 
-counter = 1;
-for lP = 1:nDraws
-    for i = 1:length(train)
-        tempI = train{i};
+			% Skip short samples (less than 3 time steps)
+			if size(tempI, 2) < 3
+				outTrain{counter} = tempI;
+				outTrainLabels(counter) = trainLabels(i);
+				counter = counter + 1;
+				continue
+			end
 
-        % Skip short samples (less than 3 time steps)
-        if size(tempI, 2) < 3
-            outTrain{counter} = tempI;
-            outTrainLabels(counter) = trainLabels(i);
-            counter = counter + 1;
-            continue
-        end
+			% Detemine number of segments based on random value from set of input numbers        
+			segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
+			segNum = segNum(randperm(length(segNum))); 
+			segNum = segNum(1);
+			maxDlM = ceil(maxDl * 2 / segNum) * segNum;
+			minDlM = segNum;
+			a = minDlM:segNum:maxDlM;
 
-        % Detemine number of segments based on random value from set of input numbers        
-        segNum = ceil(segNumOrig * 0.8):ceil(segNumOrig * 1.2);
-        segNum = segNum(randperm(length(segNum))); 
-        segNum = segNum(1);
-        maxDlM = ceil(maxDl * 2 / segNum) * segNum;
-        minDlM = segNum;
-        a = minDlM:segNum:maxDlM;
-         
+			% Randomly choose new length for resampling
+			data_len = size(tempI, 2);
+			a_rand = a(randperm(length(a)));
+			aa = a_rand(1);
+			data_len = ceil(data_len / aa) * aa;
 
-        % Randomly choose new length for resampling
-        data_len = size(tempI, 2);
-        a_rand = a(randperm(length(a)));
-        aa = a_rand(1);
-        data_len = ceil(data_len / aa) * aa;
+			% === Step 1: Interpolation (time-scale modification) ===
+			% Resample the time-series to the new length
+			data = tempI';
+			newLen = data_len;
+			[initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
+			[newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
+			newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
 
-        % === Step 1: Interpolation (time-scale modification) ===
-        % Resample the time-series to the new length
-        data = tempI';
-        newLen = data_len;
-        [initSize1, initSize2] = ndgrid(1:size(data, 1), 1:size(data, 2));
-        [newSize1, newSize2] = ndgrid(linspace(1, size(data, 1), newLen), 1:size(data, 2));
-        newData = interpn(initSize1, initSize2, data, newSize1, newSize2);
+			% === Step 2: Piecewise Aggregate Approximation (PAA) ===
+			% Divide each dimension into 'segNum' segments and average each
+			segSiz = floor(data_len / segNum);
+			tempR = [];
 
-        % === Step 2: Piecewise Aggregate Approximation (PAA) ===
-        % Divide each dimension into 'segNum' segments and average each
-        segSiz = floor(data_len / segNum);
-        tempR = [];
+			for d = 1:size(newData, 2)
+				data = newData(:, d);		
+				data = (data - mean(data)) / std(data);  % Z-normalization
 
-        for d = 1:size(newData, 2)
-            data = newData(:, d);		
-            data = (data - mean(data)) / std(data);  % Z-normalization
+				% Reshape into segments (segSiz × segNum) and compute segment means
+				dane = reshape(data, segSiz, segNum); 
+				dane(isnan(dane)) = 0;  % Handle numerical issues
+				segments = mean(dane);  % One value per segment (PAA)
 
-            % Reshape into segments (segSiz × segNum) and compute segment means
-            dane = reshape(data, segSiz, segNum); 
-            dane(isnan(dane)) = 0;  % Handle numerical issues
-            segments = mean(dane);  % One value per segment (PAA)
+				% Ensure no NaNs remain
+				segments(isnan(segments)) = 0;
 
-            % Ensure no NaNs remain
-            segments(isnan(segments)) = 0;
+				% Concatenate features from each dimension
+				tempR = [tempR, segments'];
+			end
 
-            % Concatenate features from each dimension
-            tempR = [tempR, segments'];
-        end
-
-        % Store the final augmented sample
-        outTrain{counter} = tempR';  % Shape: [feature × segment]
-        counter = counter + 1;
-    end
+			% Store the final augmented sample
+			outTrain{counter} = tempR';  % Shape: [feature × segment]
+			counter = counter + 1;
+		end
+	end
 end
 ##### SOURCE END #####
 -->

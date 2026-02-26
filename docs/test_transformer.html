@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>test_transformer</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2025-07-27">
+<meta name="DC.date" content="2026-02-26">
 <meta name="DC.source" content="test_transformer.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -97,14 +97,17 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <li>
 <a href="#7">testing</a>
 </li>
+<li>
+<a href="#8">calculate classification accuracy</a>
+</li>
 </ul>
 </div>
 <h2 id="1">Single Validation Test Using Transformer Encoder</h2>
 <p>This script performs a classification test using a custom Transformer-based neural network model for time series data. The model includes a projection layer, self-attention mechanism, feed-forward sub-block, and a classification head. The model is trained and evaluated on the given training and test sets.</p>
-<p>Inputs: - TRAIN_X: cell array of training sequences (features &times; time) - TRAIN_Y: vector of training labels - TEST_X: cell array of testing sequences - TEST_Y: vector of testing labels - parameters: structure with model and training hyperparameters: .numHiddenUnits - internal model dimension (d_model) .numHeads - number of attention heads .dropout - dropout rate for regularization .feedForwardSize - size of the FFN sub-block .numClasses - number of output classes .maxEpochs - number of training epochs .miniBatchSize - size of training mini-batches .initialLearnRate - learning rate for optimizer .processingUnit - 'cpu' or 'gpu' .gradientThreshold - gradient clipping threshold - dispLogs: boolean flag to display logs</p>
-<p>Output: - accuracy: classification accuracy on the test set</p>
+<p>Inputs: - TRAIN_X: cell array of training sequences (features &times; time) - TRAIN_Y: vector of training labels - TEST_X: cell array of testing sequences - TEST_Y: vector of testing labels - params: structure with model and training hyperparameters: .numHiddenUnits - internal model dimension (d_model) .numHeads - number of attention heads .dropout - dropout rate for regularization .feedForwardSize - size of the FFN sub-block .numClasses - number of output classes .maxEpochs - number of training epochs .miniBatchSize - size of training mini-batches .initialLearnRate - learning rate for optimizer .processingUnit - 'cpu' or 'gpu' .gradientThreshold - gradient clipping threshold - dispLogs: boolean flag to display logs</p>
+<p>Output: - accuracy: classification accuracy on the test set - metrics: table with other metrics</p>
 <pre class="codeinput">
-<span class="keyword">function</span> accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+<span class="keyword">function</span> [accuracy, metrics] = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 </pre>
 <pre class="codeinput">    <span class="comment">% display logs only if multiprocessing is set</span>
     <span class="keyword">if</span> dispLogs
@@ -127,38 +130,38 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
     TRAIN_Y = TRAIN_Y(idx);
 
     <span class="comment">% determine the input size from the training data</span>
-    parameters.inputSize = size(TRAIN_X{1}, 1);
+    params.inputSize = size(TRAIN_X{1}, 1);
 
     <span class="comment">% ensure the internal dimension (numHiddenUnits) is divisible by numHeads</span>
-    <span class="keyword">if</span> mod(parameters.numHiddenUnits, parameters.numHeads) ~= 0
+    <span class="keyword">if</span> mod(params.numHiddenUnits, params.numHeads) ~= 0
          error(<span class="string">'numHiddenUnits must be divisible by numHeads.'</span>);
     <span class="keyword">end</span>
-    numKeyChannels = parameters.numHiddenUnits / parameters.numHeads;
+    numKeyChannels = params.numHiddenUnits / params.numHeads;
 </pre>
 <h2 id="4">build custom transformer encoder block within a layer graph</h2>
 <pre class="codeinput">    <span class="comment">% input layer: takes sequences with [features x timeSteps]</span>
-    inputLayer = sequenceInputLayer(parameters.inputSize, <span class="string">'Name'</span>, <span class="string">'input'</span>);
+    inputLayer = sequenceInputLayer(params.inputSize, <span class="string">'Name'</span>, <span class="string">'input'</span>);
 
     <span class="comment">% projection layer: maps input feature dimension to the internal dimension (d_model)</span>
-    projLayer = fullyConnectedLayer(parameters.numHiddenUnits, <span class="string">'Name'</span>, <span class="string">'proj'</span>);
+    projLayer = fullyConnectedLayer(params.numHiddenUnits, <span class="string">'Name'</span>, <span class="string">'proj'</span>);
 
     <span class="comment">% --- self-attention sub-block ---</span>
-    selfAttn = selfAttentionLayer(parameters.numHeads, numKeyChannels, <span class="string">'Name'</span>, <span class="string">'self_attention'</span>);
-    attnDrop = dropoutLayer(parameters.dropout, <span class="string">'Name'</span>, <span class="string">'attn_dropout'</span>);
+    selfAttn = selfAttentionLayer(params.numHeads, numKeyChannels, <span class="string">'Name'</span>, <span class="string">'self_attention'</span>);
+    attnDrop = dropoutLayer(params.dropout, <span class="string">'Name'</span>, <span class="string">'attn_dropout'</span>);
     addition1 = additionLayer(2, <span class="string">'Name'</span>, <span class="string">'attn_add'</span>); <span class="comment">% residual connection</span>
     norm1 = layerNormalizationLayer(<span class="string">'Name'</span>, <span class="string">'attn_norm'</span>);
 
     <span class="comment">% --- feed-forward (FFN) sub-block ---</span>
-    fc1 = fullyConnectedLayer(parameters.feedForwardSize, <span class="string">'Name'</span>, <span class="string">'fc1'</span>);
+    fc1 = fullyConnectedLayer(params.feedForwardSize, <span class="string">'Name'</span>, <span class="string">'fc1'</span>);
     relu1 = reluLayer(<span class="string">'Name'</span>, <span class="string">'relu1'</span>);
-    ffnDrop = dropoutLayer(parameters.dropout, <span class="string">'Name'</span>, <span class="string">'ffn_dropout'</span>);
-    fc2 = fullyConnectedLayer(parameters.numHiddenUnits, <span class="string">'Name'</span>, <span class="string">'fc2'</span>);
+    ffnDrop = dropoutLayer(params.dropout, <span class="string">'Name'</span>, <span class="string">'ffn_dropout'</span>);
+    fc2 = fullyConnectedLayer(params.numHiddenUnits, <span class="string">'Name'</span>, <span class="string">'fc2'</span>);
     addition2 = additionLayer(2, <span class="string">'Name'</span>, <span class="string">'ffn_add'</span>); <span class="comment">% residual connection</span>
     norm2 = layerNormalizationLayer(<span class="string">'Name'</span>, <span class="string">'ffn_norm'</span>);
 
     <span class="comment">% --- classification head ---</span>
     pool = globalAveragePooling1dLayer(<span class="string">'Name'</span>,<span class="string">'global_avg_pool'</span>);
-    fc3 = fullyConnectedLayer(parameters.numClasses, <span class="string">'Name'</span>,<span class="string">'fc'</span>);
+    fc3 = fullyConnectedLayer(params.numClasses, <span class="string">'Name'</span>,<span class="string">'fc'</span>);
     softmx = softmaxLayer(<span class="string">'Name'</span>,<span class="string">'softmax'</span>);
     classOutput = classificationLayer(<span class="string">'Name'</span>, <span class="string">'classification'</span>);
 
@@ -202,25 +205,26 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </pre>
 <h2 id="5">set training options</h2>
 <pre class="codeinput">    options = trainingOptions(<span class="string">'adam'</span>, <span class="keyword">...</span>
-        <span class="string">'ExecutionEnvironment'</span>, parameters.processingUnit, <span class="keyword">...</span>
-        <span class="string">'GradientThreshold'</span>, parameters.gradientThreshold, <span class="keyword">...</span>
-        <span class="string">'MaxEpochs'</span>, parameters.maxEpochs, <span class="keyword">...</span>
+        <span class="string">'ExecutionEnvironment'</span>, params.processingUnit, <span class="keyword">...</span>
+        <span class="string">'GradientThreshold'</span>, params.gradientThreshold, <span class="keyword">...</span>
+        <span class="string">'MaxEpochs'</span>, params.maxEpochs, <span class="keyword">...</span>
         <span class="string">'ValidationPatience'</span>, 5, <span class="keyword">...</span>
         <span class="string">'ValidationData'</span>, {TRAIN_X, TRAIN_Y}, <span class="keyword">...</span>
-        <span class="string">'MiniBatchSize'</span>, parameters.miniBatchSize, <span class="keyword">...</span>
+        <span class="string">'MiniBatchSize'</span>, params.miniBatchSize, <span class="keyword">...</span>
         <span class="string">'SequenceLength'</span>, <span class="string">'longest'</span>, <span class="keyword">...</span>
         <span class="string">'Shuffle'</span>, <span class="string">'never'</span>, <span class="keyword">...</span>
         <span class="string">'Verbose'</span>, 0, <span class="keyword">...</span>
         <span class="string">'Plots'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
-        <span class="string">'InitialLearnRate'</span>, parameters.initialLearnRate);
+        <span class="string">'InitialLearnRate'</span>, params.initialLearnRate);
 </pre>
 <h2 id="6">train the network</h2>
 <pre class="codeinput">    net = trainNetwork(TRAIN_X, TRAIN_Y, lgraph, options);
 </pre>
 <h2 id="7">testing</h2>
 <pre class="codeinput">    recognizedLabels = classify(net, TEST_X, <span class="string">'MiniBatchSize'</span>, 1, <span class="string">'SequenceLength'</span>, <span class="string">'longest'</span>);
-    recognizedSamplesCount = sum(recognizedLabels' == TEST_Y);
-    accuracy = recognizedSamplesCount / numel(TEST_Y);
+</pre>
+<h2 id="8">calculate classification accuracy</h2>
+<pre class="codeinput">    [accuracy, metrics] = calculate_metrics(TEST_Y, recognizedLabels);
 </pre>
 <pre class="codeinput">
 <span class="keyword">end</span>
@@ -245,7 +249,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing sequences
 % - TEST_Y: vector of testing labels
-% - parameters: structure with model and training hyperparameters:
+% - params: structure with model and training hyperparameters:
 %       .numHiddenUnits - internal model dimension (d_model)
 %       .numHeads - number of attention heads
 %       .dropout - dropout rate for regularization
@@ -260,8 +264,9 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
     % display logs only if multiprocessing is set
     if dispLogs
         disp('Transformer validation test...')
@@ -283,39 +288,39 @@ function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameter
     TRAIN_Y = TRAIN_Y(idx);
     
     % determine the input size from the training data
-    parameters.inputSize = size(TRAIN_X{1}, 1);
+    params.inputSize = size(TRAIN_X{1}, 1);
 
     % ensure the internal dimension (numHiddenUnits) is divisible by numHeads
-    if mod(parameters.numHiddenUnits, parameters.numHeads) ~= 0
+    if mod(params.numHiddenUnits, params.numHeads) ~= 0
          error('numHiddenUnits must be divisible by numHeads.');
     end
-    numKeyChannels = parameters.numHiddenUnits / parameters.numHeads;
+    numKeyChannels = params.numHiddenUnits / params.numHeads;
 
     %% build custom transformer encoder block within a layer graph
 
     % input layer: takes sequences with [features x timeSteps]
-    inputLayer = sequenceInputLayer(parameters.inputSize, 'Name', 'input');
+    inputLayer = sequenceInputLayer(params.inputSize, 'Name', 'input');
     
     % projection layer: maps input feature dimension to the internal dimension (d_model)
-    projLayer = fullyConnectedLayer(parameters.numHiddenUnits, 'Name', 'proj');
+    projLayer = fullyConnectedLayer(params.numHiddenUnits, 'Name', 'proj');
 
     % REPLACE_WITH_DASH_DASH- self-attention sub-block REPLACE_WITH_DASH_DASH-
-    selfAttn = selfAttentionLayer(parameters.numHeads, numKeyChannels, 'Name', 'self_attention');
-    attnDrop = dropoutLayer(parameters.dropout, 'Name', 'attn_dropout');
+    selfAttn = selfAttentionLayer(params.numHeads, numKeyChannels, 'Name', 'self_attention');
+    attnDrop = dropoutLayer(params.dropout, 'Name', 'attn_dropout');
     addition1 = additionLayer(2, 'Name', 'attn_add'); % residual connection
     norm1 = layerNormalizationLayer('Name', 'attn_norm');
 
     % REPLACE_WITH_DASH_DASH- feed-forward (FFN) sub-block REPLACE_WITH_DASH_DASH-
-    fc1 = fullyConnectedLayer(parameters.feedForwardSize, 'Name', 'fc1'); 
+    fc1 = fullyConnectedLayer(params.feedForwardSize, 'Name', 'fc1'); 
     relu1 = reluLayer('Name', 'relu1');
-    ffnDrop = dropoutLayer(parameters.dropout, 'Name', 'ffn_dropout');
-    fc2 = fullyConnectedLayer(parameters.numHiddenUnits, 'Name', 'fc2');
+    ffnDrop = dropoutLayer(params.dropout, 'Name', 'ffn_dropout');
+    fc2 = fullyConnectedLayer(params.numHiddenUnits, 'Name', 'fc2');
     addition2 = additionLayer(2, 'Name', 'ffn_add'); % residual connection
     norm2 = layerNormalizationLayer('Name', 'ffn_norm');
 
     % REPLACE_WITH_DASH_DASH- classification head REPLACE_WITH_DASH_DASH-
     pool = globalAveragePooling1dLayer('Name','global_avg_pool');
-    fc3 = fullyConnectedLayer(parameters.numClasses, 'Name','fc');
+    fc3 = fullyConnectedLayer(params.numClasses, 'Name','fc');
     softmx = softmaxLayer('Name','softmax');
     classOutput = classificationLayer('Name', 'classification');
 
@@ -359,25 +364,26 @@ function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameter
     
     %% set training options
     options = trainingOptions('adam', ...
-        'ExecutionEnvironment', parameters.processingUnit, ...
-        'GradientThreshold', parameters.gradientThreshold, ...
-        'MaxEpochs', parameters.maxEpochs, ...
+        'ExecutionEnvironment', params.processingUnit, ...
+        'GradientThreshold', params.gradientThreshold, ...
+        'MaxEpochs', params.maxEpochs, ...
         'ValidationPatience', 5, ...
         'ValidationData', {TRAIN_X, TRAIN_Y}, ...
-        'MiniBatchSize', parameters.miniBatchSize, ...
+        'MiniBatchSize', params.miniBatchSize, ...
         'SequenceLength', 'longest', ...
         'Shuffle', 'never', ...
         'Verbose', 0, ...
         'Plots', 'none', ...
-        'InitialLearnRate', parameters.initialLearnRate);
+        'InitialLearnRate', params.initialLearnRate);
 
     %% train the network
     net = trainNetwork(TRAIN_X, TRAIN_Y, lgraph, options);
     
     %% testing
     recognizedLabels = classify(net, TEST_X, 'MiniBatchSize', 1, 'SequenceLength', 'longest');
-    recognizedSamplesCount = sum(recognizedLabels' == TEST_Y);
-    accuracy = recognizedSamplesCount / numel(TEST_Y);
+    
+    %% calculate classification accuracy
+    [accuracy, metrics] = calculate_metrics(TEST_Y, recognizedLabels);
 end
 
 ##### SOURCE END #####

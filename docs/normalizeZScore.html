@@ -6,11 +6,11 @@
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
       -->
-<title>aug_jitter</title>
+<title>normalizeZScore</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
 <meta name="DC.date" content="2026-02-26">
-<meta name="DC.source" content="aug_jitter.m">
+<meta name="DC.source" content="normalizeZScore.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
@@ -77,51 +77,44 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <body>
 <div class="content">
 <pre class="codeinput">
-<span class="comment">% % Augmentation method:</span>
-<span class="comment">% % Jittering</span>
-<span class="comment">%</span>
-<span class="comment">% T. T. Um, F. M. J. Pfister, D. Pichler, S. Endo, M. Lang, S. Hirche,</span>
-<span class="comment">% U. Fietzek, D. Kulić,</span>
-<span class="comment">% "Data augmentation of wearable sensor data for Parkinson&rsquo;s disease monitoring using convolutional neural networks",</span>
-<span class="comment">% ACM International Conference on Multimodal Interaction, ACM, 2017.</span>
-<span class="comment">%</span>
-<span class="comment">% This function augments multivariate time-series data by adding Gaussian noise (jittering) to simulate sensor variability.</span>
+<span class="comment">% normalizeZScore performs time series z-score data normalization by normalization.</span>
 <span class="comment">%</span>
 <span class="comment">% Inputs:</span>
-<span class="comment">% - train: cell array of multivariate time-series samples (dim &times; time)</span>
-<span class="comment">% - trainLabels: corresponding class labels</span>
-<span class="comment">% - nDraws: number of augmented versions to generate per sample</span>
-<span class="comment">% - stdev: standard deviation of Gaussian noise (default = 2.0)</span>
+<span class="comment">%   - trainingSet: Cell array containing training time series (Features x Time)</span>
+<span class="comment">%   - testingSet: Cell array containing testing time series (Features x Time)</span>
 <span class="comment">%</span>
 <span class="comment">% Outputs:</span>
-<span class="comment">% - outTrain: augmented training data with added noise</span>
-<span class="comment">% - outTrainLabels: corresponding labels for the augmented data</span>
+<span class="comment">%   - normalizedTrain: normalized training set</span>
+<span class="comment">%   - normalizedTest: normalized testing set</span>
 
-<span class="keyword">function</span> [outTrain, outTrainLabels] = aug_jitter(train, trainLabels, nDraws, stdev)
-    <span class="keyword">if</span> nargin &lt; 4
-        stdev = 2.0; <span class="comment">% default noise standard deviation</span>
+<span class="keyword">function</span> [normalizedTrain, normalizedTest] = normalizeZScore(trainingSet, testingSet)
+    <span class="comment">% Concatenate all training data to calculate global statistics per feature</span>
+    allTrainData = cat(2, trainingSet{:});
+
+    <span class="comment">% Calculate Mean and Standard Deviation for each feature (row)</span>
+    mu = mean(allTrainData, 2);
+    sigma = std(allTrainData, 0, 2);
+
+    <span class="comment">% Handle constant features where sigma is 0 to avoid division by zero (NaNs)</span>
+    <span class="comment">% We replace 0 with 1, so the value becomes (x - mu) / 1 = 0 (centered)</span>
+    sigma(sigma == 0) = 1;
+
+    <span class="comment">% Apply normalization to the Training Set</span>
+    normalizedTrain = trainingSet; <span class="comment">% Initialize with original structure</span>
+    numTrain = numel(trainingSet);
+
+    <span class="keyword">for</span> i = 1:numTrain
+        <span class="comment">% (X - Mean) / Std</span>
+        <span class="comment">% MATLAB handles dimension broadcasting automatically here</span>
+        normalizedTrain{i} = (trainingSet{i} - mu) ./ sigma;
     <span class="keyword">end</span>
 
-    outTrain = cell(1, length(train) * nDraws);
-    outTrainLabels = zeros(1, length(train) * nDraws);
-    xSize = length(train);
+    <span class="comment">% Apply the SAME normalization (using training stats) to the Testing Set</span>
+    normalizedTest = testingSet; <span class="comment">% Initialize with original structure</span>
+    numTest = numel(testingSet);
 
-    counter = 1;
-    <span class="keyword">for</span> i = 1:xSize
-        temp = train{i};
-        <span class="keyword">for</span> iD = 1:nDraws
-            <span class="comment">% Generate Gaussian noise matching the time-series size</span>
-            noise = stdev * randn(size(temp));
-
-            <span class="comment">% Add noise to the original time-series (jittering)</span>
-            noisy_series = temp + noise;
-
-            <span class="comment">% Store augmented sample and corresponding label</span>
-            outTrain{counter} = noisy_series;
-            outTrainLabels(counter) = trainLabels(i);
-
-            counter = counter + 1;
-        <span class="keyword">end</span>
+    <span class="keyword">for</span> i = 1:numTest
+        normalizedTest{i} = (testingSet{i} - mu) ./ sigma;
     <span class="keyword">end</span>
 <span class="keyword">end</span>
 </pre>
@@ -133,54 +126,46 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </div>
 <!--
 ##### SOURCE BEGIN #####
-% % Augmentation method:
-% % Jittering
-%
-% T. T. Um, F. M. J. Pfister, D. Pichler, S. Endo, M. Lang, S. Hirche,
-% U. Fietzek, D. Kulić,
-% "Data augmentation of wearable sensor data for Parkinson’s disease monitoring using convolutional neural networks",
-% ACM International Conference on Multimodal Interaction, ACM, 2017.
-%
-% This function augments multivariate time-series data by adding Gaussian noise (jittering) to simulate sensor variability.
+% normalizeZScore performs time series z-score data normalization by normalization.
 %
 % Inputs:
-% - train: cell array of multivariate time-series samples (dim × time)
-% - trainLabels: corresponding class labels
-% - nDraws: number of augmented versions to generate per sample
-% - stdev: standard deviation of Gaussian noise (default = 2.0)
+%   - trainingSet: Cell array containing training time series (Features x Time)
+%   - testingSet: Cell array containing testing time series (Features x Time)
 %
 % Outputs:
-% - outTrain: augmented training data with added noise
-% - outTrainLabels: corresponding labels for the augmented data
-
-function [outTrain, outTrainLabels] = aug_jitter(train, trainLabels, nDraws, stdev)
-    if nargin < 4
-        stdev = 2.0; % default noise standard deviation
+%   - normalizedTrain: normalized training set
+%   - normalizedTest: normalized testing set
+	
+function [normalizedTrain, normalizedTest] = normalizeZScore(trainingSet, testingSet)   
+    % Concatenate all training data to calculate global statistics per feature
+    allTrainData = cat(2, trainingSet{:});
+    
+    % Calculate Mean and Standard Deviation for each feature (row)
+    mu = mean(allTrainData, 2);
+    sigma = std(allTrainData, 0, 2);
+    
+    % Handle constant features where sigma is 0 to avoid division by zero (NaNs)
+    % We replace 0 with 1, so the value becomes (x - mu) / 1 = 0 (centered)
+    sigma(sigma == 0) = 1;
+    
+    % Apply normalization to the Training Set
+    normalizedTrain = trainingSet; % Initialize with original structure
+    numTrain = numel(trainingSet);
+    
+    for i = 1:numTrain
+        % (X - Mean) / Std
+        % MATLAB handles dimension broadcasting automatically here
+        normalizedTrain{i} = (trainingSet{i} - mu) ./ sigma;
     end
-
-    outTrain = cell(1, length(train) * nDraws);
-    outTrainLabels = zeros(1, length(train) * nDraws);
-    xSize = length(train);
-
-    counter = 1;
-    for i = 1:xSize
-        temp = train{i};
-        for iD = 1:nDraws
-            % Generate Gaussian noise matching the time-series size
-            noise = stdev * randn(size(temp));
-
-            % Add noise to the original time-series (jittering)
-            noisy_series = temp + noise;
-
-            % Store augmented sample and corresponding label
-            outTrain{counter} = noisy_series;
-            outTrainLabels(counter) = trainLabels(i);
-
-            counter = counter + 1;
-        end
+    
+    % Apply the SAME normalization (using training stats) to the Testing Set
+    normalizedTest = testingSet; % Initialize with original structure
+    numTest = numel(testingSet);
+    
+    for i = 1:numTest
+        normalizedTest{i} = (testingSet{i} - mu) ./ sigma;
     end
 end
-
 ##### SOURCE END #####
 -->
 </body>

@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>Visualization and Statistical Analysis of Classification Results</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2025-07-26">
+<meta name="DC.date" content="2026-02-26">
 <meta name="DC.source" content="visualize_results.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -77,14 +77,44 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <body>
 <div class="content">
 <h1>Visualization and Statistical Analysis of Classification Results</h1>
+<!--introduction-->
 <p>This script computes and visualizes the mean classification accuracy obtained from multiple augmentation methods. It performs statistical comparison using the Wilcoxon rank-sum test and visualizes: - mean accuracy bar plots, - p-value heatmap for pairwise method comparisons, - box plots of accuracy distributions, - relative improvement over baseline (no augmentation), - and generates 2D MDS embeddings for augmented datasets.</p>
-<p>Inputs assumed to be available in the workspace: - results: matrix of accuracies (methods &times; repetitions) - augmentationMethods: cell array of augmentation method handles or 'no aug' - dataset: dataset name string (for visualization) - augSetSize: augmentation set size multiplier</p>
-<pre class="codeinput">
-<span class="comment">% Compute mean accuracy for each augmentation method</span>
-meanResults = mean(results, 2);
-
-<span class="comment">% Extract readable method names for plotting</span>
-numMethods = size(results, 1);
+<p>Inputs assumed to be available in the workspace: - accuracies: matrix of accuracies (methods &times; repetitions) - augmentationMethods: cell array of augmentation method handles or 'no aug' - dataset: dataset name string (for visualization) - parameters.augSetSize: augmentation set size multiplier</p>
+<!--/introduction-->
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">Compute mean accuracy for each augmentation method</a>
+</li>
+<li>
+<a href="#2">Extract readable method names for plotting</a>
+</li>
+<li>
+<a href="#3">Plot mean accuracy for each augmentation method</a>
+</li>
+<li>
+<a href="#4">Plot mean execution time for each augmentation method</a>
+</li>
+<li>
+<a href="#5">Compute pairwise p-values using Wilcoxon rank-sum test</a>
+</li>
+<li>
+<a href="#6">Plot heatmap of p-values from statistical tests</a>
+</li>
+<li>
+<a href="#7">Calculate and plot relative improvement over baseline (no augmentation)</a>
+</li>
+<li>
+<a href="#8">Generate 2D MDS embeddings visualizations for augmented datasets</a>
+</li>
+</ul>
+</div>
+<h2 id="1">Compute mean accuracy for each augmentation method</h2>
+<pre class="codeinput">meanAccuracies = mean(accuracies, 2);
+</pre>
+<h2 id="2">Extract readable method names for plotting</h2>
+<pre class="codeinput">numMethods = size(accuracies, 1);
 methodNames = cell(numMethods, 1);
 <span class="keyword">for</span> i = 1:numMethods
     <span class="keyword">if</span> ischar(augmentationMethods{i}) <span class="comment">% Handle 'no augmentation' case</span>
@@ -94,27 +124,52 @@ methodNames = cell(numMethods, 1);
         methodNames{i} = upper(methodName(5:end)); <span class="comment">% Remove 'aug_' prefix and capitalize</span>
     <span class="keyword">end</span>
 <span class="keyword">end</span>
-
-<span class="comment">% Plot mean accuracy for each augmentation method</span>
-figure;
-bar(meanResults);
+</pre>
+<h2 id="3">Plot mean accuracy for each augmentation method</h2>
+<pre class="codeinput">figure;
+bar(meanAccuracies);
 xticklabels(methodNames);
 xtickangle(45);
 ylabel(<span class="string">'Mean Accuracy'</span>);
 title(<span class="string">'Comparison of Augmentation Methods'</span>);
 grid <span class="string">on</span>;
-
-<span class="comment">% Compute pairwise p-values using Wilcoxon rank-sum test</span>
-pValues = ones(numMethods); <span class="comment">% Initialize symmetric matrix of p-values</span>
+</pre>
+<h2 id="4">Plot mean execution time for each augmentation method</h2>
+<p>Ensure methodNames is a column</p>
+<pre class="codeinput">methodNames = methodNames(:);
+<span class="comment">% Use provided mean times</span>
+meanTimes = augTimes';
+<span class="comment">% Ensure orientation consistency</span>
+<span class="keyword">if</span> numel(meanTimes) ~= numel(methodNames)
+    meanTimes = meanTimes(:);
+<span class="keyword">end</span>
+<span class="comment">% Logical index for 'no aug', if is added</span>
+idxNoAug = strcmpi(methodNames, <span class="string">'no aug'</span>);
+<span class="comment">% Remove 'no aug' if it exists</span>
+meanTimesFiltered = meanTimes(~idxNoAug);
+methodNamesFiltered = methodNames(~idxNoAug);
+<span class="comment">% Plot with logarithmic Y-axis as some methods may compute much longer than others</span>
+figure;
+bar(meanTimesFiltered);
+set(gca, <span class="string">'YScale'</span>, <span class="string">'log'</span>);
+xticks(1:numel(methodNamesFiltered));
+xticklabels(methodNamesFiltered);
+xtickangle(45);
+ylabel(<span class="string">'Mean Execution Time (log scale) [s]'</span>);
+title(<span class="string">'Comparison of Execution Time of Augmentation Methods'</span>);
+grid <span class="string">on</span>;
+</pre>
+<h2 id="5">Compute pairwise p-values using Wilcoxon rank-sum test</h2>
+<pre class="codeinput">pValues = ones(numMethods); <span class="comment">% Initialize symmetric matrix of p-values</span>
 <span class="keyword">for</span> i = 1:numMethods
     <span class="keyword">for</span> j = i+1:numMethods
-        pValues(i, j) = ranksum(results(i, :), results(j, :));
+        pValues(i, j) = ranksum(accuracies(i, :), accuracies(j, :));
         pValues(j, i) = pValues(i, j);
     <span class="keyword">end</span>
 <span class="keyword">end</span>
-
-<span class="comment">% Plot heatmap of p-values from statistical tests</span>
-figure;
+</pre>
+<h2 id="6">Plot heatmap of p-values from statistical tests</h2>
+<pre class="codeinput">figure;
 heatmap(methodNames, methodNames, pValues, <span class="string">'Colormap'</span>, parula, <span class="string">'ColorbarVisible'</span>, <span class="string">'on'</span>);
 xlabel(<span class="string">'Method 1'</span>);
 ylabel(<span class="string">'Method 2'</span>);
@@ -122,14 +177,14 @@ title(<span class="string">'Wilcoxon Test: Pairwise Comparison of Augmentation M
 
 <span class="comment">% Create box plots showing accuracy distributions per method</span>
 figure;
-boxplot(results', methodNames, <span class="string">'LabelOrientation'</span>, <span class="string">'inline'</span>);
+boxplot(accuracies', methodNames, <span class="string">'LabelOrientation'</span>, <span class="string">'inline'</span>);
 ylabel(<span class="string">'Accuracy'</span>);
 title(<span class="string">'Performance Distribution Across Augmentation Methods'</span>);
 grid <span class="string">on</span>;
-
-<span class="comment">% Calculate and plot relative improvement over baseline (no augmentation)</span>
-baseline = mean(results(strcmp(methodNames, <span class="string">'no aug'</span>), :));
-relativeImprovement = ((meanResults - baseline) ./ baseline) * 100;
+</pre>
+<h2 id="7">Calculate and plot relative improvement over baseline (no augmentation)</h2>
+<pre class="codeinput">baseline = mean(accuracies(strcmp(methodNames, <span class="string">'no aug'</span>), :));
+relativeImprovement = ((meanAccuracies - baseline) ./ baseline) * 100;
 
 figure;
 bar(relativeImprovement);
@@ -138,14 +193,15 @@ xtickangle(45);
 ylabel(<span class="string">'Relative Improvement (%)'</span>);
 title(<span class="string">'Impact of Data Augmentation on Classification Accuracy'</span>);
 grid <span class="string">on</span>;
-
-<span class="comment">% Generate 2D MDS embeddings visualizations for augmented datasets</span>
+</pre>
+<h2 id="8">Generate 2D MDS embeddings visualizations for augmented datasets</h2>
+<pre class="codeinput">
 <span class="keyword">for</span> i = 1:numMethods
     <span class="keyword">if</span> ischar(augmentationMethods{i}) <span class="comment">% Skip 'no augmentation'</span>
         <span class="keyword">continue</span>;
     <span class="keyword">else</span>
         augFunction = augmentationMethods{i};
-        visualization_of_augmented_dataset(augFunction, dataset, augSetSize);
+        visualization_of_augmented_dataset(augFunction, dataset, parameters.augSetSize);
     <span class="keyword">end</span>
 <span class="keyword">end</span>
 </pre>
@@ -169,16 +225,16 @@ grid <span class="string">on</span>;
 % - and generates 2D MDS embeddings for augmented datasets.
 %
 % Inputs assumed to be available in the workspace:
-% - results: matrix of accuracies (methods × repetitions)
+% - accuracies: matrix of accuracies (methods × repetitions)
 % - augmentationMethods: cell array of augmentation method handles or 'no aug'
 % - dataset: dataset name string (for visualization)
-% - augSetSize: augmentation set size multiplier
+% - parameters.augSetSize: augmentation set size multiplier
 
-% Compute mean accuracy for each augmentation method
-meanResults = mean(results, 2);
+%% Compute mean accuracy for each augmentation method
+meanAccuracies = mean(accuracies, 2);
 
-% Extract readable method names for plotting
-numMethods = size(results, 1);
+%% Extract readable method names for plotting
+numMethods = size(accuracies, 1);
 methodNames = cell(numMethods, 1);
 for i = 1:numMethods
     if ischar(augmentationMethods{i}) % Handle 'no augmentation' case
@@ -189,25 +245,52 @@ for i = 1:numMethods
     end
 end
 
-% Plot mean accuracy for each augmentation method
+%% Plot mean accuracy for each augmentation method
 figure;
-bar(meanResults);
+bar(meanAccuracies);
 xticklabels(methodNames);
 xtickangle(45);
 ylabel('Mean Accuracy');
 title('Comparison of Augmentation Methods');
 grid on;
 
-% Compute pairwise p-values using Wilcoxon rank-sum test
+%% Plot mean execution time for each augmentation method
+% Ensure methodNames is a column
+methodNames = methodNames(:);
+% Use provided mean times
+meanTimes = augTimes';
+% Ensure orientation consistency
+if numel(meanTimes) ~= numel(methodNames)
+    meanTimes = meanTimes(:);
+end
+% Logical index for 'no aug', if is added
+idxNoAug = strcmpi(methodNames, 'no aug');
+% Remove 'no aug' if it exists
+meanTimesFiltered = meanTimes(~idxNoAug);
+methodNamesFiltered = methodNames(~idxNoAug);
+% Plot with logarithmic Y-axis as some methods may compute much longer than others
+figure;
+bar(meanTimesFiltered);
+set(gca, 'YScale', 'log');
+xticks(1:numel(methodNamesFiltered));
+xticklabels(methodNamesFiltered);
+xtickangle(45);
+ylabel('Mean Execution Time (log scale) [s]');
+title('Comparison of Execution Time of Augmentation Methods');
+grid on;
+
+
+
+%% Compute pairwise p-values using Wilcoxon rank-sum test
 pValues = ones(numMethods); % Initialize symmetric matrix of p-values
 for i = 1:numMethods
     for j = i+1:numMethods
-        pValues(i, j) = ranksum(results(i, :), results(j, :));
+        pValues(i, j) = ranksum(accuracies(i, :), accuracies(j, :));
         pValues(j, i) = pValues(i, j);
     end
 end
 
-% Plot heatmap of p-values from statistical tests
+%% Plot heatmap of p-values from statistical tests
 figure;
 heatmap(methodNames, methodNames, pValues, 'Colormap', parula, 'ColorbarVisible', 'on');
 xlabel('Method 1');
@@ -216,14 +299,14 @@ title('Wilcoxon Test: Pairwise Comparison of Augmentation Methods');
 
 % Create box plots showing accuracy distributions per method
 figure;
-boxplot(results', methodNames, 'LabelOrientation', 'inline');
+boxplot(accuracies', methodNames, 'LabelOrientation', 'inline');
 ylabel('Accuracy');
 title('Performance Distribution Across Augmentation Methods');
 grid on;
 
-% Calculate and plot relative improvement over baseline (no augmentation)
-baseline = mean(results(strcmp(methodNames, 'no aug'), :)); 
-relativeImprovement = ((meanResults - baseline) ./ baseline) * 100;
+%% Calculate and plot relative improvement over baseline (no augmentation)
+baseline = mean(accuracies(strcmp(methodNames, 'no aug'), :)); 
+relativeImprovement = ((meanAccuracies - baseline) ./ baseline) * 100;
 
 figure;
 bar(relativeImprovement);
@@ -233,13 +316,14 @@ ylabel('Relative Improvement (%)');
 title('Impact of Data Augmentation on Classification Accuracy');
 grid on;
 
-% Generate 2D MDS embeddings visualizations for augmented datasets
+
+%% Generate 2D MDS embeddings visualizations for augmented datasets
 for i = 1:numMethods
     if ischar(augmentationMethods{i}) % Skip 'no augmentation'
         continue;
     else
         augFunction = augmentationMethods{i};
-        visualization_of_augmented_dataset(augFunction, dataset, augSetSize);
+        visualization_of_augmented_dataset(augFunction, dataset, parameters.augSetSize);
     end
 end
 

@@ -6,11 +6,11 @@
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
       -->
-<title>Script for augmenting dataset using the specified augmentation method</title>
+<title>one_fold_validation_dtw</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
 <meta name="DC.date" content="2026-02-26">
-<meta name="DC.source" content="augment.m">
+<meta name="DC.source" content="one_fold_validation_dtw.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
@@ -76,21 +76,23 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </head>
 <body>
 <div class="content">
-<h1>Script for augmenting dataset using the specified augmentation method</h1>
-<p>This function acts as a wrapper that applies a specified augmentation method to the training dataset.</p>
-<p>Inputs: - train: cell array of original multivariate time-series samples - trainlabels: vector of class labels corresponding to the training samples - augFunction: function handle to the augmentation method, or string 'no aug' - multiplicity: number of augmentation iterations to apply per sample</p>
-<p>Outputs: - OutTrain: cell array containing augmented training samples - OutTrainLabels: vector containing labels for the augmented samples</p>
 <pre class="codeinput">
-<span class="keyword">function</span> [OutTrain, OutTrainLabels] = augment(train, trainlabels, augFunction, multiplicity)
-    <span class="comment">% If no augmentation requested, simply return original data</span>
-    <span class="keyword">if</span> ischar(augFunction) &amp;&amp; strcmpi(augFunction, <span class="string">'no aug'</span>)
-        OutTrain = train;
-        OutTrainLabels = trainlabels;
-        <span class="keyword">return</span>
-    <span class="keyword">end</span>
-
-    <span class="comment">% Otherwise, apply the specified augmentation function</span>
-    [OutTrain, OutTrainLabels] = augFunction(train, trainlabels, multiplicity);
+<span class="keyword">function</span> accuracy = one_fold_validation_dtw(trainingData, testingData, windowSize)
+	recognizedSamplesCount = 0;
+	<span class="keyword">for</span> i = 1:length(testingData)
+		<span class="keyword">for</span> j = 1:length(trainingData)
+			distance = dtw(testingData{i,1}', trainingData{j,1}', windowSize, <span class="string">'euclidean'</span>); <span class="comment">%euclidean distance</span>
+			<span class="keyword">if</span> j==1 || distance &lt; minDistance
+				minDistance = distance;
+				recognizedLabel = trainingData{j,2};
+			<span class="keyword">end</span>
+		<span class="keyword">end</span>
+		<span class="keyword">if</span> recognizedLabel == testingData{i,2}
+			recognizedSamplesCount = recognizedSamplesCount + 1;
+		<span class="keyword">end</span>
+		<span class="comment">%disp(['i=' int2str(i)]);</span>
+	<span class="keyword">end</span>
+	accuracy = recognizedSamplesCount/length(testingData);
 <span class="keyword">end</span>
 </pre>
 <p class="footer">
@@ -101,33 +103,23 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </div>
 <!--
 ##### SOURCE BEGIN #####
-%% Script for augmenting dataset using the specified augmentation method
-%
-% This function acts as a wrapper that applies a specified augmentation
-% method to the training dataset.
-%
-% Inputs:
-% - train: cell array of original multivariate time-series samples
-% - trainlabels: vector of class labels corresponding to the training samples
-% - augFunction: function handle to the augmentation method, or string 'no aug'
-% - multiplicity: number of augmentation iterations to apply per sample
-%
-% Outputs:
-% - OutTrain: cell array containing augmented training samples
-% - OutTrainLabels: vector containing labels for the augmented samples
-
-function [OutTrain, OutTrainLabels] = augment(train, trainlabels, augFunction, multiplicity)
-    % If no augmentation requested, simply return original data
-    if ischar(augFunction) && strcmpi(augFunction, 'no aug')
-        OutTrain = train;
-        OutTrainLabels = trainlabels;
-        return
-    end
-    
-    % Otherwise, apply the specified augmentation function
-    [OutTrain, OutTrainLabels] = augFunction(train, trainlabels, multiplicity);
+function accuracy = one_fold_validation_dtw(trainingData, testingData, windowSize)
+	recognizedSamplesCount = 0;
+	for i = 1:length(testingData)	
+		for j = 1:length(trainingData)
+			distance = dtw(testingData{i,1}', trainingData{j,1}', windowSize, 'euclidean'); %euclidean distance
+			if j==1 || distance < minDistance
+				minDistance = distance;
+				recognizedLabel = trainingData{j,2};
+			end
+		end
+		if recognizedLabel == testingData{i,2}
+			recognizedSamplesCount = recognizedSamplesCount + 1;
+		end
+		%disp(['i=' int2str(i)]);
+	end
+	accuracy = recognizedSamplesCount/length(testingData);
 end
-
 ##### SOURCE END #####
 -->
 </body>

@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>test_de</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2025-07-27">
+<meta name="DC.date" content="2026-02-26">
 <meta name="DC.source" content="test_de.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -89,10 +89,10 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </div>
 <h2 id="1">Delay Embedding Classifier Validation Test</h2>
 <p>This function performs classification using the Delay Embedding (DE) method. The training data is converted to transition probability models for each class, then test samples are classified by comparing their embeddings to these models.</p>
-<p>Inputs: - TRAIN_X: cell array of training samples (features &times; time) - TRAIN_Y: vector of training labels - TEST_X: cell array of testing samples - TEST_Y: vector of testing labels - parameters: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid) - dispLogs: boolean flag to display progress messages</p>
-<p>Output: - accuracy: classification accuracy on the test set</p>
+<p>Inputs: - TRAIN_X: cell array of training samples (features &times; time) - TRAIN_Y: vector of training labels - TEST_X: cell array of testing samples - TEST_Y: vector of testing labels - params: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid) - dispLogs: boolean flag to display progress messages</p>
+<p>Output: - accuracy: classification accuracy on the test set - metrics: table with other metrics</p>
 <pre class="codeinput">
-<span class="keyword">function</span> accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+<span class="keyword">function</span> [accuracy, metrics] = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 </pre>
 <h2 id="2">Add necessary paths for DE functions</h2>
 <pre class="codeinput"> 	addpath(<span class="string">'scripts/DE/DE'</span>, <span class="string">'scripts/DE/MGM'</span>, <span class="string">'scripts/DE/utilities'</span>);
@@ -109,7 +109,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 	trans = cell(n_class, 1);
 	grid = cell(n_class, 1);
 	<span class="keyword">for</span> i=1:n_class
-		grid{i} = createGrid(parameters.gridSize, zeros(1, parameters.dim*n_dimSignal));
+		grid{i} = createGrid(params.gridSize, zeros(1, params.dim*n_dimSignal));
 	<span class="keyword">end</span>
 
 	<span class="comment">% training</span>
@@ -118,16 +118,16 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 		x = TRAIN_X{loop};
 		<span class="comment">% low-pass filter</span>
 		<span class="keyword">for</span> i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
 		<span class="keyword">end</span>
 		y = TRAIN_Y(loop);
-        <span class="keyword">if</span>(size(x,2) &lt; parameters.dim)
+        <span class="keyword">if</span>(size(x,2) &lt; params.dim)
             <span class="keyword">continue</span>
         <span class="keyword">end</span>
 		<span class="comment">% multi-dimensional delay embedding</span>
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		<span class="comment">% update transition list</span>
-		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, parameters.isGrid);
+		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, params.isGrid);
 	<span class="keyword">end</span>
 	<span class="comment">% refine transition list and compute transition probability</span>
 	<span class="keyword">for</span> i=1:n_class
@@ -142,20 +142,20 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 		x = TEST_X{loop};
 		<span class="comment">% low-pass filter</span>
         <span class="keyword">for</span> i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
         <span class="keyword">end</span>
 		<span class="comment">% multi-dimensional delay embedding</span>
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		<span class="comment">% model matching</span>
 		<span class="keyword">for</span> i = 1:n_class
-			dist(i) = HDist(point_cloud, trans{i}, grid{i}, parameters.alpha, parameters.beta, parameters.isGrid);
+			dist(i) = HDist(point_cloud, trans{i}, grid{i}, params.alpha, params.beta, params.isGrid);
 		<span class="keyword">end</span>
 		[~, loc] = min(dist);
 		prediction(loop) = loc;
 	<span class="keyword">end</span>
 
 	<span class="comment">% calculate classification accuracy</span>
-	accuracy = mean(TEST_Y'==prediction);
+	[accuracy, metrics] = calculate_metrics(categorical(TEST_Y), categorical(prediction));
 </pre>
 <pre class="codeinput">
 <span class="keyword">end</span>
@@ -179,13 +179,14 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing samples
 % - TEST_Y: vector of testing labels
-% - parameters: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid)
+% - params: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid)
 % - dispLogs: boolean flag to display progress messages
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 
     %% Add necessary paths for DE functions
  	addpath('scripts/DE/DE', 'scripts/DE/MGM', 'scripts/DE/utilities');
@@ -202,7 +203,7 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 	trans = cell(n_class, 1);
 	grid = cell(n_class, 1);
 	for i=1:n_class
-		grid{i} = createGrid(parameters.gridSize, zeros(1, parameters.dim*n_dimSignal));
+		grid{i} = createGrid(params.gridSize, zeros(1, params.dim*n_dimSignal));
 	end
 
 	% training
@@ -211,16 +212,16 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 		x = TRAIN_X{loop};
 		% low-pass filter
 		for i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
 		end
 		y = TRAIN_Y(loop);
-        if(size(x,2) < parameters.dim)
+        if(size(x,2) < params.dim)
             continue
         end
 		% multi-dimensional delay embedding
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		% update transition list
-		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, parameters.isGrid);
+		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, params.isGrid);
 	end
 	% refine transition list and compute transition probability
 	for i=1:n_class
@@ -235,20 +236,20 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 		x = TEST_X{loop};
 		% low-pass filter
         for i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
         end
 		% multi-dimensional delay embedding
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		% model matching
 		for i = 1:n_class
-			dist(i) = HDist(point_cloud, trans{i}, grid{i}, parameters.alpha, parameters.beta, parameters.isGrid);
+			dist(i) = HDist(point_cloud, trans{i}, grid{i}, params.alpha, params.beta, params.isGrid);
 		end 
 		[~, loc] = min(dist);
 		prediction(loop) = loc; 
 	end
 	
 	% calculate classification accuracy
-	accuracy = mean(TEST_Y'==prediction);
+	[accuracy, metrics] = calculate_metrics(categorical(TEST_Y), categorical(prediction));
 end
 ##### SOURCE END #####
 -->

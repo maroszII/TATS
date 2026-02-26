@@ -6,11 +6,11 @@
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
       -->
-<title>aug_jitter</title>
+<title>average_metrics_table</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
 <meta name="DC.date" content="2026-02-26">
-<meta name="DC.source" content="aug_jitter.m">
+<meta name="DC.source" content="average_metrics_table.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
@@ -77,52 +77,53 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <body>
 <div class="content">
 <pre class="codeinput">
-<span class="comment">% % Augmentation method:</span>
-<span class="comment">% % Jittering</span>
+<span class="comment">% average_metrics_table averages numerical metrics across multiple tables.</span>
 <span class="comment">%</span>
-<span class="comment">% T. T. Um, F. M. J. Pfister, D. Pichler, S. Endo, M. Lang, S. Hirche,</span>
-<span class="comment">% U. Fietzek, D. Kulić,</span>
-<span class="comment">% "Data augmentation of wearable sensor data for Parkinson&rsquo;s disease monitoring using convolutional neural networks",</span>
-<span class="comment">% ACM International Conference on Multimodal Interaction, ACM, 2017.</span>
+<span class="comment">%   Input:</span>
+<span class="comment">%   - allTables: A cell array (e.g., 10x1) where each cell contains</span>
+<span class="comment">%                a table returned by calculateMetrics.</span>
 <span class="comment">%</span>
-<span class="comment">% This function augments multivariate time-series data by adding Gaussian noise (jittering) to simulate sensor variability.</span>
-<span class="comment">%</span>
-<span class="comment">% Inputs:</span>
-<span class="comment">% - train: cell array of multivariate time-series samples (dim &times; time)</span>
-<span class="comment">% - trainLabels: corresponding class labels</span>
-<span class="comment">% - nDraws: number of augmented versions to generate per sample</span>
-<span class="comment">% - stdev: standard deviation of Gaussian noise (default = 2.0)</span>
-<span class="comment">%</span>
-<span class="comment">% Outputs:</span>
-<span class="comment">% - outTrain: augmented training data with added noise</span>
-<span class="comment">% - outTrainLabels: corresponding labels for the augmented data</span>
+<span class="comment">%   Output:</span>
+<span class="comment">%   - averagedTable: A single table with averaged Precision, Recall,</span>
+<span class="comment">%                    F1_Score, and Accuracy.</span>
 
-<span class="keyword">function</span> [outTrain, outTrainLabels] = aug_jitter(train, trainLabels, nDraws, stdev)
-    <span class="keyword">if</span> nargin &lt; 4
-        stdev = 2.0; <span class="comment">% default noise standard deviation</span>
+<span class="keyword">function</span> averagedTable = average_metrics_table(allTables)
+    <span class="comment">% Initialization</span>
+    numIterations = length(allTables);
+    <span class="keyword">if</span> numIterations == 0
+        error(<span class="string">'The input cell array is empty.'</span>);
     <span class="keyword">end</span>
 
-    outTrain = cell(1, length(train) * nDraws);
-    outTrainLabels = zeros(1, length(train) * nDraws);
-    xSize = length(train);
+    <span class="comment">% Get metadata from the first table (labels and headers)</span>
+    templateTable = allTables{1};
+    classNames = templateTable.Class;
+    varNames = templateTable.Properties.VariableNames;
 
-    counter = 1;
-    <span class="keyword">for</span> i = 1:xSize
-        temp = train{i};
-        <span class="keyword">for</span> iD = 1:nDraws
-            <span class="comment">% Generate Gaussian noise matching the time-series size</span>
-            noise = stdev * randn(size(temp));
+    <span class="comment">% Get dimensions (rows and numeric columns)</span>
+    [numRows, numCols] = size(templateTable);
 
-            <span class="comment">% Add noise to the original time-series (jittering)</span>
-            noisy_series = temp + noise;
+    <span class="comment">% Extract and sum numeric data</span>
+    <span class="comment">% Columns 2 to end are Precision, Recall, F1_Score, and Accuracy</span>
+    numericSum = zeros(numRows, numCols - 1);
 
-            <span class="comment">% Store augmented sample and corresponding label</span>
-            outTrain{counter} = noisy_series;
-            outTrainLabels(counter) = trainLabels(i);
+    <span class="keyword">for</span> i = 1:numIterations
+        <span class="comment">% Convert table numeric columns to array</span>
+        currentNumericData = table2array(allTables{i}(:, 2:end));
 
-            counter = counter + 1;
-        <span class="keyword">end</span>
+        <span class="comment">% Add to sum</span>
+        numericSum = numericSum + currentNumericData;
     <span class="keyword">end</span>
+
+    <span class="comment">% Calculate the mean</span>
+    numericAverage = numericSum / numIterations;
+
+    <span class="comment">% Reconstruct the final table</span>
+    <span class="comment">% We concatenate the original Class column with the averaged numeric data</span>
+    averagedTable = table(classNames, <span class="keyword">...</span>
+                          numericAverage(:,1), <span class="keyword">...</span>
+                          numericAverage(:,2), <span class="keyword">...</span>
+                          numericAverage(:,3), <span class="keyword">...</span>
+                          <span class="string">'VariableNames'</span>, varNames);
 <span class="keyword">end</span>
 </pre>
 <p class="footer">
@@ -133,54 +134,54 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </div>
 <!--
 ##### SOURCE BEGIN #####
-% % Augmentation method:
-% % Jittering
+% average_metrics_table averages numerical metrics across multiple tables.
 %
-% T. T. Um, F. M. J. Pfister, D. Pichler, S. Endo, M. Lang, S. Hirche,
-% U. Fietzek, D. Kulić,
-% "Data augmentation of wearable sensor data for Parkinson’s disease monitoring using convolutional neural networks",
-% ACM International Conference on Multimodal Interaction, ACM, 2017.
+%   Input:
+%   - allTables: A cell array (e.g., 10x1) where each cell contains 
+%                a table returned by calculateMetrics.
 %
-% This function augments multivariate time-series data by adding Gaussian noise (jittering) to simulate sensor variability.
-%
-% Inputs:
-% - train: cell array of multivariate time-series samples (dim × time)
-% - trainLabels: corresponding class labels
-% - nDraws: number of augmented versions to generate per sample
-% - stdev: standard deviation of Gaussian noise (default = 2.0)
-%
-% Outputs:
-% - outTrain: augmented training data with added noise
-% - outTrainLabels: corresponding labels for the augmented data
+%   Output:
+%   - averagedTable: A single table with averaged Precision, Recall, 
+%                    F1_Score, and Accuracy.
 
-function [outTrain, outTrainLabels] = aug_jitter(train, trainLabels, nDraws, stdev)
-    if nargin < 4
-        stdev = 2.0; % default noise standard deviation
+function averagedTable = average_metrics_table(allTables)
+    % Initialization
+    numIterations = length(allTables);
+    if numIterations == 0
+        error('The input cell array is empty.');
     end
 
-    outTrain = cell(1, length(train) * nDraws);
-    outTrainLabels = zeros(1, length(train) * nDraws);
-    xSize = length(train);
-
-    counter = 1;
-    for i = 1:xSize
-        temp = train{i};
-        for iD = 1:nDraws
-            % Generate Gaussian noise matching the time-series size
-            noise = stdev * randn(size(temp));
-
-            % Add noise to the original time-series (jittering)
-            noisy_series = temp + noise;
-
-            % Store augmented sample and corresponding label
-            outTrain{counter} = noisy_series;
-            outTrainLabels(counter) = trainLabels(i);
-
-            counter = counter + 1;
-        end
+    % Get metadata from the first table (labels and headers)
+    templateTable = allTables{1};
+    classNames = templateTable.Class;
+    varNames = templateTable.Properties.VariableNames;
+    
+    % Get dimensions (rows and numeric columns)
+    [numRows, numCols] = size(templateTable);
+    
+    % Extract and sum numeric data
+    % Columns 2 to end are Precision, Recall, F1_Score, and Accuracy
+    numericSum = zeros(numRows, numCols - 1);
+    
+    for i = 1:numIterations
+        % Convert table numeric columns to array
+        currentNumericData = table2array(allTables{i}(:, 2:end));
+        
+        % Add to sum
+        numericSum = numericSum + currentNumericData;
     end
+    
+    % Calculate the mean
+    numericAverage = numericSum / numIterations;
+    
+    % Reconstruct the final table
+    % We concatenate the original Class column with the averaged numeric data
+    averagedTable = table(classNames, ...
+                          numericAverage(:,1), ...
+                          numericAverage(:,2), ...
+                          numericAverage(:,3), ...
+                          'VariableNames', varNames);
 end
-
 ##### SOURCE END #####
 -->
 </body>
