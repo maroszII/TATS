@@ -15,7 +15,9 @@
 % - multiprocessing: boolean flag to enable parallel processing
 %
 % Outputs:
-% - results: matrix of accuracies (methods × repetitions)
+% - accuracies: matrix of accuracies (methods × repetitions)
+% - metrics: cell array of tables with other metrics (for each methods, averaged across all repetitions)
+% - augTimes: augmentation times (in seconds)
 % - saves results with timestamp in a MAT-file
 
 if (strcmpi(classifier,'LSTM') || strcmpi(classifier,'GRU') || strcmpi(classifier,'Transformer')) && strcmp(parameters.processingUnit,'gpu')
@@ -24,11 +26,15 @@ if (strcmpi(classifier,'LSTM') || strcmpi(classifier,'GRU') || strcmpi(classifie
 end
 
 numMethods = length(augmentationMethods);
-results = zeros(numMethods, repetitions); % Preallocate results matrix
+accuracies = zeros(numMethods, parameters.repetitions); % Preallocate results matrix
+metrics = cell(numMethods,2);
+augTimes = zeros(numMethods, 1);
 
 if multiprocessing
+
     % Initialize parallel pool with one worker per augmentation method
     parpool(numMethods);
+
 
     % DataQueue to handle progress updates from workers
     q = parallel.pool.DataQueue;
@@ -39,9 +45,10 @@ if multiprocessing
         augFunction = augmentationMethods{i};
         
         % Run validation tests for the current augmentation method
-        accuracies = validation_tests(augFunction, classifier, dataset, ...
-            repetitions, parameters, augSetSize, multiprocessing);
-        results(i, :) = accuracies;
+        [accuracies_val, metrics_val, augTime_val] = validation_tests(augFunction, classifier, dataset, parameters, multiprocessing);
+        accuracies(i, :) = accuracies_val;
+        metrics{i,2} = metrics_val;
+        augTimes(i) = augTime_val;
         
         % Notify progress queue to update progress display
         send(q, i);
@@ -53,9 +60,15 @@ if multiprocessing
         delete(poolObj);
     end
 
-    disp('All methods tested.');
-    disp(results);
+    for i = 1:numMethods
+        augFunction = augmentationMethods{i};
 
+        if isa(augFunction, 'function_handle')
+            metrics{i,1} = func2str(augFunction);
+        else
+            metrics{i,1} = augFunction;
+        end
+    end
 else
     % Sequential processing when multiprocessing disabled
     for i = 1:numMethods
@@ -69,18 +82,28 @@ else
         end
         
         % Run validation tests for the current augmentation method
-        accuracies = validation_tests(augFunction, classifier, dataset, ...
-            repetitions, parameters, augSetSize, multiprocessing);
-        results(i, :) = accuracies;
+        [accuracies_val, metrics_val, augTime_val] = validation_tests(augFunction, classifier, dataset, parameters, multiprocessing);
+        accuracies(i, :) = accuracies_val;
+        metrics{i,2} = metrics_val;
+        augTimes(i) = augTime_val;
+        if isa(augFunction, 'function_handle')
+            metrics{i,1} = func2str(augFunction);
+        else
+            metrics{i,1} = augFunction;
+        end
     end
-    disp('All methods tested.');
-    disp(results);
 end
+
+disp('All methods tested.');
+disp('Augmentation times for each metod:');
+disp(augTimes);
+disp('Accuracies for each metod (row) and each repetition (column):');
+disp(accuracies);
 
 % Save results with timestamp to MAT-file for later analysis
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 filename = ['Results_' timestamp '.mat'];
-save(filename, 'results', 'augmentationMethods', 'classifier', 'parameters');
+save(filename, 'accuracies', 'metrics', 'augTimes', 'augmentationMethods', 'classifier', 'parameters');
 
 % Nested function for progress display during multiprocessing
 function updateProgress(total)

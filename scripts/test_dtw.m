@@ -10,7 +10,7 @@
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing samples
 % - TEST_Y: vector of testing labels
-% - parameters: struct with classifier parameters, including:
+% - params: struct with classifier parameters, including:
 %       .windowSize - Sakoe-Chiba band width for DTW
 %       .metric - metric used in DTW (e.g., 'euclidean')
 %       .k - number of neighbors for k-NN
@@ -18,8 +18,9 @@
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_dtw(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_dtw(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 
     %% Optional log display
     if dispLogs
@@ -36,24 +37,19 @@ function accuracy = test_dtw(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispL
         
         % Calculate DTW distance from test sample i to all training samples
         for j = 1:length(TRAIN_X)
-            distances(j) = dtw(TEST_X{i}, TRAIN_X{j}, parameters.windowSize, parameters.metric);
+            distances(j) = dtw(TEST_X{i}, TRAIN_X{j}, params.windowSize, params.metric);
             labels(j) = TRAIN_Y(j);
         end
         
         % Find indices of k smallest distances (nearest neighbors)
         [~, sortedIndices] = sort(distances);
-        kNearestLabels = labels(sortedIndices(1:parameters.k));
+        kNearestLabels = labels(sortedIndices(1:params.k));
         
         % Assign label based on majority vote among k neighbors
         recognizedLabel = mode(kNearestLabels);
         recognizedLabels(i) = recognizedLabel;
-        
-        % Increment count if classification is correct
-        if recognizedLabel == TEST_Y(i)
-            recognizedSamplesCount = recognizedSamplesCount + 1;
-        end
     end
 
     %% Calculate overall accuracy
-    accuracy = recognizedSamplesCount / length(TEST_Y);
+    [accuracy, metrics] = calculate_metrics(categorical(TEST_Y), categorical(recognizedLabels));
 end

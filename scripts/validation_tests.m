@@ -8,18 +8,18 @@
 % - augFunction: function handle for data augmentation (or string 'no aug')
 % - classifier: name of the classifier to use (e.g., 'lstm', 'ldmlt')
 % - dataset: string indicating the dataset name (e.g., 'auslan', 'msra', 'kard')
-% - repetitions: number of times the test should be repeated
-% - parameters: structure with classifier-specific hyperparameters; must include:
-%       .classifier - repeated here for consistency
-% - augSetSize: relative size of the augmented data (1 = 100% of original training size)
+% - params: structure containing general parameters and classifier-specific hyperparameters; 
+%           must include: .classifier - repeated here for consistency
 % - multiprocessing: boolean flag; if true, disables logs (for use in parallel jobs)
 %
 % Output:
 % - accuracies: array of test accuracies across repetitions (or single value if no repetition)
+% - metrics: table with other metrics
+% - augTime: mean augmentation time for all repetitions (in seconds)
 
-function accuracies = validation_tests(augFunction, classifier, dataset, repetitions, parameters, augSetSize, multiprocessing)
+function [accuracies, metrics, augTime] = validation_tests(augFunction, classifier, dataset, params, multiprocessing)
 
-    if nargin < 7
+    if nargin < 5
         multiprocessing = false;
     end
 
@@ -77,36 +77,42 @@ function accuracies = validation_tests(augFunction, classifier, dataset, repetit
     end
 
     % Determine number of augmented samples to generate
-    targetAugSamNum = augSetSize * length(trainingData);
+    targetAugSamNum = params.augSetSize * length(trainingData);
 
-    parameters.classifier = classifier;
+    params.classifier = classifier;
 
     % Execute test loop (repetitions > 1 only if augFunction is stochastic)
     if isa(augFunction, 'function_handle')
-        accuracies = [];
-        for i = 1:repetitions
+        accuracies = zeros(params.repetitions,1);
+        metricsRepetitions = cell(params.repetitions, 1);
+        augTimes = zeros(params.repetitions,1);
+        for i = 1 : params.repetitions
             if ~multiprocessing
-                disp(['Repetition number: ', int2str(i), '/', int2str(repetitions)])
+                disp(['Repetition number: ', int2str(i), '/', int2str(params.repetitions)])
             end
-            if multiprocessing
-                result = test(trainingData, testingData, augFunction, targetAugSamNum, parameters, multiprocessing);
-            else
-                result = test(trainingData, testingData, augFunction, targetAugSamNum, parameters, multiprocessing)
+            [accuracy, metrics, augTime] = test(trainingData, testingData, augFunction, targetAugSamNum, params, multiprocessing);
+            if ~multiprocessing
+                 disp(['accuracy = ' num2str(accuracy)]);
             end
-            accuracies = [accuracies; result];
+            accuracies(i) = accuracy;
+            metricsRepetitions{i} = metrics;
+            augTimes(i) = augTime;
         end
 
         meanRates = mean(accuracies);
         stdRates = std(accuracies);
+        metrics = average_metrics_table(metricsRepetitions);
+        augTime = mean(augTimes);
         if ~multiprocessing
-            disp(['Mean accuracy: ', num2str(meanRates), ' Standard deviation: ', num2str(stdRates)])
+            disp(['Mean accuracy: ', num2str(meanRates), ', standard deviation: ', num2str(stdRates), ', mean augmentation time: ', num2str(augTime), ' s'])
+            fprintf('\n');
         end
     else
         % No augmentation: single repetition
-        if multiprocessing
-            accuracies = test(trainingData, testingData, augFunction, targetAugSamNum, parameters, multiprocessing);
-        else
-            accuracies = test(trainingData, testingData, augFunction, targetAugSamNum, parameters, multiprocessing)
+        [accuracy, metrics, augTime] = test(trainingData, testingData, augFunction, targetAugSamNum, params, multiprocessing);
+        if ~multiprocessing
+            disp(['accuracy = ' num2str(accuracy)]);
         end
+        accuracies = accuracy;
     end
 end

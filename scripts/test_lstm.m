@@ -9,7 +9,7 @@
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing sequences
 % - TEST_Y: vector of testing labels
-% - parameters: structure with model and training hyperparameters:
+% - params: structure with model and training hyperparameters:
 %       .bidirectional - use BiLSTM if true, else LSTM
 %       .numHiddenUnits - number of hidden units in LSTM layer
 %       .numClasses - number of output classes
@@ -22,21 +22,22 @@
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 
     %% Choose LSTM or BiLSTM layer
  	% display logs only if multiprocessing is set
-	if parameters.bidirectional
+	if params.bidirectional
 		if dispLogs
 			disp('BiLSTM validation test...')
 		end
-		lstmLayerObj = lstmLayer(parameters.numHiddenUnits,'OutputMode','last');
+		lstmLayerObj = lstmLayer(params.numHiddenUnits,'OutputMode','last');
 	else
 		if dispLogs
 			disp('LSTM validation test...')
 		end
-		lstmLayerObj = bilstmLayer(parameters.numHiddenUnits,'OutputMode','last');
+		lstmLayerObj = bilstmLayer(params.numHiddenUnits,'OutputMode','last');
 	end
 
 	% get class labels
@@ -57,29 +58,29 @@ function accuracy = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, disp
 	TRAIN_Y = TRAIN_Y(idx);
 
 	% prepare training data for padding
-	parameters.inputSize = size(TRAIN_X{1},1);
+	params.inputSize = size(TRAIN_X{1},1);
 
 	% definenetwork architecture (layer types and order)
 	layers = [ ...
-	sequenceInputLayer(parameters.inputSize)
+	sequenceInputLayer(params.inputSize)
 	lstmLayerObj
-	fullyConnectedLayer(parameters.numClasses)
+	fullyConnectedLayer(params.numClasses)
 	softmaxLayer
 	classificationLayer];
 
 	% set training hyperparameters
 	options = trainingOptions('adam', ...
-	'ExecutionEnvironment',parameters.processingUnit, ...
-	'GradientThreshold',parameters.gradientThreshold, ...
-	'MaxEpochs',parameters.maxEpochs, ...
+	'ExecutionEnvironment',params.processingUnit, ...
+	'GradientThreshold',params.gradientThreshold, ...
+	'MaxEpochs',params.maxEpochs, ...
 	'ValidationPatience', 5, ...
 	'ValidationData', {TRAIN_X, TRAIN_Y}, ...
-	'MiniBatchSize',parameters.miniBatchSize, ...
+	'MiniBatchSize',params.miniBatchSize, ...
 	'SequenceLength','longest', ...
 	'Shuffle','never', ...
 	'Verbose',0, ...
 	'Plots','none',...
-	'InitialLearnRate', parameters.initialLearnRate);
+	'InitialLearnRate', params.initialLearnRate);
 
 	% training
 	net = trainNetwork(TRAIN_X, TRAIN_Y, layers, options); 
@@ -87,11 +88,5 @@ function accuracy = test_lstm(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, disp
 	recognizedLabels = classify(net, TEST_X, 'MiniBatchSize', 1, 'SequenceLength', 'longest');
 		
 	% calculate classification accuracy
-	recognizedSamplesCount = 0;
-	for i = 1:length(TEST_Y)	
-		if recognizedLabels(i) == TEST_Y(i)
-			recognizedSamplesCount = recognizedSamplesCount + 1;
-		end
-	end
-	accuracy = recognizedSamplesCount/length(TEST_Y);
+	[accuracy, metrics] = calculate_metrics(TEST_Y, recognizedLabels);
 end

@@ -10,7 +10,7 @@
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing sequences
 % - TEST_Y: vector of testing labels
-% - parameters: structure with model and training hyperparameters:
+% - params: structure with model and training hyperparameters:
 %       .numHiddenUnits - internal model dimension (d_model)
 %       .numHeads - number of attention heads
 %       .dropout - dropout rate for regularization
@@ -25,8 +25,9 @@
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
     % display logs only if multiprocessing is set
     if dispLogs
         disp('Transformer validation test...')
@@ -48,39 +49,39 @@ function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameter
     TRAIN_Y = TRAIN_Y(idx);
     
     % determine the input size from the training data
-    parameters.inputSize = size(TRAIN_X{1}, 1);
+    params.inputSize = size(TRAIN_X{1}, 1);
 
     % ensure the internal dimension (numHiddenUnits) is divisible by numHeads
-    if mod(parameters.numHiddenUnits, parameters.numHeads) ~= 0
+    if mod(params.numHiddenUnits, params.numHeads) ~= 0
          error('numHiddenUnits must be divisible by numHeads.');
     end
-    numKeyChannels = parameters.numHiddenUnits / parameters.numHeads;
+    numKeyChannels = params.numHiddenUnits / params.numHeads;
 
     %% build custom transformer encoder block within a layer graph
 
     % input layer: takes sequences with [features x timeSteps]
-    inputLayer = sequenceInputLayer(parameters.inputSize, 'Name', 'input');
+    inputLayer = sequenceInputLayer(params.inputSize, 'Name', 'input');
     
     % projection layer: maps input feature dimension to the internal dimension (d_model)
-    projLayer = fullyConnectedLayer(parameters.numHiddenUnits, 'Name', 'proj');
+    projLayer = fullyConnectedLayer(params.numHiddenUnits, 'Name', 'proj');
 
     % --- self-attention sub-block ---
-    selfAttn = selfAttentionLayer(parameters.numHeads, numKeyChannels, 'Name', 'self_attention');
-    attnDrop = dropoutLayer(parameters.dropout, 'Name', 'attn_dropout');
+    selfAttn = selfAttentionLayer(params.numHeads, numKeyChannels, 'Name', 'self_attention');
+    attnDrop = dropoutLayer(params.dropout, 'Name', 'attn_dropout');
     addition1 = additionLayer(2, 'Name', 'attn_add'); % residual connection
     norm1 = layerNormalizationLayer('Name', 'attn_norm');
 
     % --- feed-forward (FFN) sub-block ---
-    fc1 = fullyConnectedLayer(parameters.feedForwardSize, 'Name', 'fc1'); 
+    fc1 = fullyConnectedLayer(params.feedForwardSize, 'Name', 'fc1'); 
     relu1 = reluLayer('Name', 'relu1');
-    ffnDrop = dropoutLayer(parameters.dropout, 'Name', 'ffn_dropout');
-    fc2 = fullyConnectedLayer(parameters.numHiddenUnits, 'Name', 'fc2');
+    ffnDrop = dropoutLayer(params.dropout, 'Name', 'ffn_dropout');
+    fc2 = fullyConnectedLayer(params.numHiddenUnits, 'Name', 'fc2');
     addition2 = additionLayer(2, 'Name', 'ffn_add'); % residual connection
     norm2 = layerNormalizationLayer('Name', 'ffn_norm');
 
     % --- classification head ---
     pool = globalAveragePooling1dLayer('Name','global_avg_pool');
-    fc3 = fullyConnectedLayer(parameters.numClasses, 'Name','fc');
+    fc3 = fullyConnectedLayer(params.numClasses, 'Name','fc');
     softmx = softmaxLayer('Name','softmax');
     classOutput = classificationLayer('Name', 'classification');
 
@@ -124,23 +125,24 @@ function accuracy = test_transformer(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameter
     
     %% set training options
     options = trainingOptions('adam', ...
-        'ExecutionEnvironment', parameters.processingUnit, ...
-        'GradientThreshold', parameters.gradientThreshold, ...
-        'MaxEpochs', parameters.maxEpochs, ...
+        'ExecutionEnvironment', params.processingUnit, ...
+        'GradientThreshold', params.gradientThreshold, ...
+        'MaxEpochs', params.maxEpochs, ...
         'ValidationPatience', 5, ...
         'ValidationData', {TRAIN_X, TRAIN_Y}, ...
-        'MiniBatchSize', parameters.miniBatchSize, ...
+        'MiniBatchSize', params.miniBatchSize, ...
         'SequenceLength', 'longest', ...
         'Shuffle', 'never', ...
         'Verbose', 0, ...
         'Plots', 'none', ...
-        'InitialLearnRate', parameters.initialLearnRate);
+        'InitialLearnRate', params.initialLearnRate);
 
     %% train the network
     net = trainNetwork(TRAIN_X, TRAIN_Y, lgraph, options);
     
     %% testing
     recognizedLabels = classify(net, TEST_X, 'MiniBatchSize', 1, 'SequenceLength', 'longest');
-    recognizedSamplesCount = sum(recognizedLabels' == TEST_Y);
-    accuracy = recognizedSamplesCount / numel(TEST_Y);
+    
+    %% calculate classification accuracy
+    [accuracy, metrics] = calculate_metrics(TEST_Y, recognizedLabels);
 end

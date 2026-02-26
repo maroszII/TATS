@@ -9,7 +9,7 @@
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of test sequences (features × time)
 % - TEST_Y: vector of test labels
-% - parameters: struct with the following fields:
+% - params: struct with the following fields:
 %       .epochs - number of training cycles (mapped to `cycle` in LDMLT)
 %       .k - number of nearest neighbors for classification
 %       .[other fields specific to LDMLT, e.g., sigma, lambda, etc.]
@@ -17,8 +17,9 @@
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_ldmlt(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_ldmlt(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 
     %% Add LDMLT library path
     addpath('scripts/LDMLT');
@@ -34,22 +35,14 @@ function accuracy = test_ldmlt(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dis
     TEST_X = cellfun(@(x) x.', TEST_X, 'UniformOutput', false);
 
     %% Set training cycles in LDMLT parameters
-    parameters.cycle = parameters.epochs;
+    params.cycle = params.epochs;
 
     %% Train LDMLT metric learning model
-    M = LDMLT_TS(TRAIN_X, TRAIN_Y, parameters);
+    M = LDMLT_TS(TRAIN_X, TRAIN_Y, params);
 
     %% Classify test samples using k-NN in learned metric space
-    recognizedLabels = KNN_TS(TRAIN_X, TRAIN_Y, TEST_X, M, parameters.k);
+    recognizedLabels = KNN_TS(TRAIN_X, TRAIN_Y, TEST_X, M, params.k);
 
-    %% Evaluate classification accuracy
-    % The output of KNN_TS is a matrix of size (k × numTestSamples).
-    % We compare the top-1 prediction (row `k`) with ground truth labels.
-    correctCount = 0;
-    for i = 1:length(TEST_Y)
-        if recognizedLabels(parameters.k, i) == TEST_Y(i)
-            correctCount = correctCount + 1;
-        end
-    end
-    accuracy = correctCount / length(TEST_Y);
+    %% Calculate classification accuracy
+    [accuracy, metrics] = calculate_metrics(categorical(TEST_Y), categorical(recognizedLabels));
 end

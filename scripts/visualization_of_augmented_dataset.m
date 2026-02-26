@@ -18,12 +18,11 @@
 % 5. Plots original and augmented samples for visual inspection.
 
 function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
-
-    %%% Set random seed for reproducibility
+    %% Set random seed for reproducibility
     randn('seed', 0);
     rand('seed', 0);
 
-    %%% Map dataset names to their corresponding .mat files
+    %% Map dataset names to their corresponding .mat files
     datasetFiles = struct( ...
         'florence', 'actionCoordsFLORENCE.mat', ...
         'kard', 'actionCoordsKARD.mat', ...
@@ -45,14 +44,14 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         'pendigits', 'Pendigits.mat' ...
     );
 
-    %%% Load selected dataset
+    %% Load selected dataset
     if isfield(datasetFiles, lower(dataset))
         data = importdata(datasetFiles.(lower(dataset)));
     else
         error('Unknown dataset name.');
     end
 
-    %%% Flatten the data structure to a cell array
+    %% Flatten the data structure to a cell array
     subjectsNumber = length(data);
     Data = {};
     for s = 1 : subjectsNumber
@@ -60,10 +59,10 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
     end
     data = Data;
 
-    %%% Determine number of augmented samples to generate
+    %% Determine number of augmented samples to generate
     targetAugSamNum = augSetSize * length(data);
 
-    %%% Extract sequences (X) and labels (Y) from dataset
+    %% Extract sequences (X) and labels (Y) from dataset
     numOriginalSamples = length(data);
     data_X = cell(1, numOriginalSamples);
     data_Y = zeros(1, numOriginalSamples);
@@ -72,40 +71,40 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         data_Y(i) = str2double(data{i, 2});
     end
 
-    %%% Augment data using the provided function handle
+    %% Augment data using the provided function handle
     if isa(augFunction, 'function_handle')
-        OutTrain = {};
-        OutTrainLabels = [];
+        outTrain = {};
+        outTrainLabels = [];
 
-        while length(OutTrain) < targetAugSamNum
+        while length(outTrain) < targetAugSamNum
             [out_temp, out_lab_temp] = augment(data_X, data_Y, augFunction, 1);
-            OutTrain = [OutTrain, out_temp];
-            OutTrainLabels = [OutTrainLabels, out_lab_temp];
+            outTrain = [outTrain, out_temp];
+            outTrainLabels = [outTrainLabels, out_lab_temp];
         end
 
         % Truncate augmented data if too long
-        while length(OutTrain) > targetAugSamNum
-            index = randi(length(OutTrain));
-            OutTrain(index) = [];
-            OutTrainLabels(index) = [];
+        while length(outTrain) > targetAugSamNum
+            index = randi(length(outTrain));
+            outTrain(index) = [];
+            outTrainLabels(index) = [];
         end
 
-        %%% For selected methods, convert representation before appending
+        % For selected methods, convert representation before appending
         if strcmp(func2str(augFunction), 'aug_adder')
             data_X = change_representation(data_X);
         end
 
         % Merge original and augmented data
-        data_X = [data_X, OutTrain];
-        data_Y = [data_Y, OutTrainLabels];
+        data_X = [data_X, outTrain];
+        data_Y = [data_Y, outTrainLabels];
     end
 
-    %%% Prepare for distance matrix computation
+    %% Prepare for distance matrix computation
     AllData = data_X;
     AllLabels = data_Y;
     numSamples = length(AllData);
 
-    %%% Compute DTW distance matrix (quadratic cost)
+    %% Compute DTW distance matrix (quadratic cost)
     D = zeros(numSamples, numSamples);
     for i = 1:numSamples - 1
         for j = i + 1:numSamples
@@ -114,10 +113,10 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         end
     end
 
-    %%% Apply MDS to project data into 2D space
+    %% Apply MDS to project data into 2D space
     Y_all = mdscale(D, 2, 'Start', 'random');
 
-    %%% Plot results
+    %% Plot results
     figure;
     hold on;
 
@@ -142,18 +141,17 @@ function visualization_of_augmented_dataset(augFunction, dataset, augSetSize)
         legendNames{2 * i} = sprintf('Class %d (Augmented)', classLabel);
     end
 
-    %%% Format method name for title
+    %% Format method name for title
     methodName = func2str(augFunction);
     if startsWith(methodName, 'aug_')
         methodName = methodName(5:end);
     end
     methodName = upper(methodName);
 
-    %%% Show plot
+    %% Show plot
     title({sprintf('MDS - %s dataset', dataset), sprintf('\\bf{Augmentation: %s}', methodName)}, 'Interpreter', 'tex');
     xlabel('Dimension 1');
     ylabel('Dimension 2');
     legend(legendEntries, legendNames);
     hold off;
-
 end

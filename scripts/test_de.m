@@ -9,13 +9,14 @@
 % - TRAIN_Y: vector of training labels
 % - TEST_X: cell array of testing samples
 % - TEST_Y: vector of testing labels
-% - parameters: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid)
+% - params: struct with classifier parameters (gridSize, dim, step, slide, filter, alpha, beta, isGrid)
 % - dispLogs: boolean flag to display progress messages
 %
 % Output:
 % - accuracy: classification accuracy on the test set
+% - metrics: table with other metrics
 
-function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLogs)
+function [accuracy, metrics] = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, params, dispLogs)
 
     %% Add necessary paths for DE functions
  	addpath('scripts/DE/DE', 'scripts/DE/MGM', 'scripts/DE/utilities');
@@ -32,7 +33,7 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 	trans = cell(n_class, 1);
 	grid = cell(n_class, 1);
 	for i=1:n_class
-		grid{i} = createGrid(parameters.gridSize, zeros(1, parameters.dim*n_dimSignal));
+		grid{i} = createGrid(params.gridSize, zeros(1, params.dim*n_dimSignal));
 	end
 
 	% training
@@ -41,16 +42,16 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 		x = TRAIN_X{loop};
 		% low-pass filter
 		for i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
 		end
 		y = TRAIN_Y(loop);
-        if(size(x,2) < parameters.dim)
+        if(size(x,2) < params.dim)
             continue
         end
 		% multi-dimensional delay embedding
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		% update transition list
-		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, parameters.isGrid);
+		trans{y} = add2Trans(point_cloud, trans{y}, grid{y}, params.isGrid);
 	end
 	% refine transition list and compute transition probability
 	for i=1:n_class
@@ -65,18 +66,18 @@ function accuracy = test_de(TRAIN_X, TRAIN_Y, TEST_X, TEST_Y, parameters, dispLo
 		x = TEST_X{loop};
 		% low-pass filter
         for i = 1:size(x, 1)
-			x(i, :) = lowpassFilter(x(i,:), parameters.filter);
+			x(i, :) = lowpassFilter(x(i,:), params.filter);
         end
 		% multi-dimensional delay embedding
-		point_cloud = delayEmbedingND(x', parameters.dim, parameters.step, parameters.slide);
+		point_cloud = delayEmbedingND(x', params.dim, params.step, params.slide);
 		% model matching
 		for i = 1:n_class
-			dist(i) = HDist(point_cloud, trans{i}, grid{i}, parameters.alpha, parameters.beta, parameters.isGrid);
+			dist(i) = HDist(point_cloud, trans{i}, grid{i}, params.alpha, params.beta, params.isGrid);
 		end 
 		[~, loc] = min(dist);
 		prediction(loop) = loc; 
 	end
 	
 	% calculate classification accuracy
-	accuracy = mean(TEST_Y'==prediction);
+	[accuracy, metrics] = calculate_metrics(categorical(TEST_Y), categorical(prediction));
 end
