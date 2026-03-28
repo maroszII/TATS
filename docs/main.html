@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>TATS: Toolbox for Augmenting Time-Series</title>
 <meta name="generator" content="MATLAB 25.1">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-26">
+<meta name="DC.date" content="2026-03-28">
 <meta name="DC.source" content="main.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -83,7 +83,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <p>Affiliation: Rzeszow University of Technology</p>
 <p>Emails: <a href="mailto:dawwar@prz.edu.pl">dawwar@prz.edu.pl</a>, <a href="mailto:marosz@kia.prz.edu.pl">marosz@kia.prz.edu.pl</a>
 </p>
-<p>Date: 2025-02-20 Version: 2.0</p>
+<p>Date: 2026-03-28 Version: 2.1</p>
 <!--/introduction-->
 <h2>Contents</h2>
 <div>
@@ -119,6 +119,9 @@ addpath(genpath(fullfile(pwd, <span class="string">'datasets'</span>)));
 addpath(genpath(fullfile(pwd, <span class="string">'scripts'</span>)));
 
 disp(<span class="string">'TATS: Toolbox for Augmenting Time-Series'</span>)
+
+<span class="comment">% Set global seed for reproducibility</span>
+<span class="comment">% rng(0, 'twister');</span>
 </pre>
 <h2 id="2">Available Datasets</h2>
 <p>The following datasets are available for experimentation:</p>
@@ -274,8 +277,8 @@ parameters.normalization = 0;       <span class="comment">% Dataset normalizatio
 %
 % Emails: dawwar@prz.edu.pl, marosz@kia.prz.edu.pl  
 %
-% Date: 2025-02-20 
-% Version: 2.0  
+% Date: 2026-03-28 
+% Version: 2.1  
 
 %% Initialization
 % Clear console, workspace, and close all figures.
@@ -288,6 +291,9 @@ addpath(genpath(fullfile(pwd, 'datasets')));
 addpath(genpath(fullfile(pwd, 'scripts')));
 
 disp('TATS: Toolbox for Augmenting Time-Series')
+
+% Set global seed for reproducibility 
+% rng(0, 'twister'); 
 
 %% Available Datasets
 % The following datasets are available for experimentation:
