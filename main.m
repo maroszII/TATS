@@ -7,8 +7,8 @@
 %
 % Emails: dawwar@prz.edu.pl, marosz@kia.prz.edu.pl  
 %
-% Date: 2025-02-20 
-% Version: 2.0  
+% Date: 2026-03-28 
+% Version: 2.1  
 
 %% Initialization
 % Clear console, workspace, and close all figures.
@@ -21,6 +21,9 @@ addpath(genpath(fullfile(pwd, 'datasets')));
 addpath(genpath(fullfile(pwd, 'scripts')));
 
 disp('TATS: Toolbox for Augmenting Time-Series')
+
+% Set global seed for reproducibility 
+% rng(0, 'twister'); 
 
 %% Available Datasets
 % The following datasets are available for experimentation:
